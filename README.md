@@ -15,6 +15,7 @@ Please contact us or open a GitHub issue if you are interested in using this lib
 ## Build
 
 ### Method 1: Makefile with Configuration file (deprecated)
+
 To build the library, you must first create a configuration file to point the installed to dependent library paths and enable/disable features.
 See the default [`nvhpcsdk.conf`](configs/nvhpcsdk.conf) for an example of settings to build the library using the [NVHPC SDK compilers and libraries](https://developer.nvidia.com/hpc-sdk).
 The [`configs/`](configs) directory also contains several sample build configuration files for a number of GPU compute clusters, like Perlmutter, Summit, and Marconi 100.
@@ -28,21 +29,31 @@ $ make -j CONFIGFILE=<path to your configuration file>
 The library will be compiled and installed in a newly created `build/` directory. This build method is deprecated and will be removed in a future release.
 
 ### Method 2: CMake (recommended)
+
 We also enable builds using CMake. A CMake build of the library without additional examples/tests can be completed using the following commands
+
 ```shell
 $ mkdir build
 $ cd build
 $ cmake ..
 $ make -j
 ```
+
 There are several build variables available to configure the CMake build which can be found at the top of the project [`CMakeLists.txt`](CMakeLists.txt) file. As an example,
 to configure the build to compile additional examples and enable NVSHMEM backends, you can run the following CMake command
+
 ```shell
 $ cmake -DCUDECOMP_BUILD_EXTRAS=1 -DCUDECOMP_ENABLE_NVSHMEM=1 ..
 ```
 
+For Polaris the following command has been used
+
+```shell
+$ cmake .. -DCUDECOMP_BUILD_FORTRAN=0 -DCUDECOMP_BUILD_EXTRAS=1
+```
 
 ### Dependencies
+
 We strongly recommend building this library using NVHPC SDK compilers and libraries, as the SDK contains all required dependencies for this library and is the focus of our testing. Fortran features are only supported using NVHPC SDK compilers.
 
 One exception is NVSHMEM, which uses a bootstrapping layer that depends on your MPI installation. The NVSHMEM library packaged within NVHPC
@@ -52,5 +63,5 @@ NVSHMEM against your desired MPI implementation, or build a custom MPI bootstrap
 Additionally, this library utilizes CUDA-aware MPI and is only compatible with MPI libraries with these features enabled.
 
 ## License
-This library is released under a BSD 3-clause license, which can be found in [LICENSE](license).
 
+This library is released under a BSD 3-clause license, which can be found in [LICENSE](license).
