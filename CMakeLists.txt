@@ -56,23 +56,26 @@ find_package(MPI REQUIRED)
 if (CRAY_CC_BIN)
     # FindMPI does not include Cray GTL (e.g. CUDA-aware) libs
     # automatically in Cray environment. Locate it to include in linking.
+    # This is not true on Polaris as stated in this part of the docs:
+    # It is assumed the majority of applications to be built on Polaris will make use of the GPUs. As such, the craype-accel-nvidia80 module is in the default environment. This has the effect of the Cray compiler wrappers adding -gpu to the compiler invocation along with additional include paths and libraries. Additional compilers flags may be needed depending on the compiler and GPU programming model used (e.g. -cuda, -acc, or -mp=gpu).
+
+    # This module also adds GPU Transport Layer (GTL) libraries to the link-line to support GPU-aware MPI applications.
     string(REPLACE ":" ";" CRAY_LIB_PATHS $ENV{CRAY_LD_LIBRARY_PATH})
     find_library(CRAY_MPI_GTL_CUDA_LIBRARY REQUIRED
-    NAMES mpi_gtl_cuda
-    HINTS ${CRAY_LIB_PATHS}
-  )
+      NAMES mpi_gtl_cuda
+      HINTS ${CRAY_LIB_PATHS}
+    )
 
     # Cray GTL libs benefit from linking against gdrcopy, so also
     # locating that library.
-    # Removed the REQUIRED flag as gdrcopy is not always available and is a kernel module.
-    #   find_library(GDRCOPY_LIBRARY
-    #   NAMES gdrapi
-    # )
+    find_library(GDRCOPY_LIBRARY
+      NAMES gdrapi
+    )
 
     message(STATUS "Found Cray GTL library: " ${CRAY_MPI_GTL_CUDA_LIBRARY})
-    # if (GDRCOPY_LIBRARY FOUND)
-    #     message(STATUS "Found GDRCopy library: " ${GDRCOPY_LIBRARY})
-    # endif()
+    if (GDRCOPY_LIBRARY FOUND)
+        message(STATUS "Found GDRCopy library: " ${GDRCOPY_LIBRARY})
+    endif()
 endif()
 
 # HPC SDK
@@ -170,9 +173,9 @@ target_link_libraries(cudecomp PRIVATE ${NCCL_LIBRARY})
 if (CRAY_CC_BIN)
     # In Cray environments, add links to GTL and GDRCopy libs for CUDA-aware support
     target_link_libraries(cudecomp PRIVATE ${CRAY_MPI_GTL_CUDA_LIBRARY})
-    # if (GDRCOPY_LIBRARY FOUND)
-    #     target_link_libraries(cudecomp PRIVATE ${GDRCOPY_LIBRARY})
-    # endif()
+    if (GDRCOPY_LIBRARY FOUND)
+        target_link_libraries(cudecomp PRIVATE ${GDRCOPY_LIBRARY})
+    endif()
 endif()
 
 if (CUDECOMP_ENABLE_NVTX)
@@ -278,3 +281,6 @@ if (CUDECOMP_BUILD_EXTRAS)
         add_subdirectory(examples/fortran/poisson)
     endif()
 endif()
+endif()
+endif()
+

@@ -727,6 +727,7 @@ cudecompResult_t cudecompMalloc(cudecompHandle_t handle, cudecompGridDesc_t grid
       THROW_NOT_SUPPORTED("build does not support NVSHMEM communication backends.");
 #endif
     } else {
+      // CHECK_CUDA(cudaMallocManaged(buffer, buffer_size_bytes));
       CHECK_CUDA(cudaMalloc(buffer, buffer_size_bytes));
 #if NCCL_VERSION_CODE >= NCCL_VERSION(2, 19, 0)
       if (transposeBackendRequiresNccl(grid_desc->config.transpose_comm_backend) ||

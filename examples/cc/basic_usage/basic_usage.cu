@@ -134,8 +134,8 @@ int main(int argc, char** argv) {
   config.gdims[1] = 64; // Y
   config.gdims[2] = 64; // Z
 
-  config.transpose_comm_backend = CUDECOMP_TRANSPOSE_COMM_MPI_P2P;
-  config.halo_comm_backend = CUDECOMP_HALO_COMM_MPI;
+  config.transpose_comm_backend = CUDECOMP_TRANSPOSE_COMM_NCCL;
+  config.halo_comm_backend = CUDECOMP_HALO_COMM_NCCL;
 
   config.transpose_axis_contiguous[0] = true;
   config.transpose_axis_contiguous[1] = true;
