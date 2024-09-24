@@ -281,6 +281,4 @@ if (CUDECOMP_BUILD_EXTRAS)
         add_subdirectory(examples/fortran/poisson)
     endif()
 endif()
-endif()
-endif()
 
