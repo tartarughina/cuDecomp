@@ -68,14 +68,14 @@ if (CRAY_CC_BIN)
 
     # Cray GTL libs benefit from linking against gdrcopy, so also
     # locating that library.
-    find_library(GDRCOPY_LIBRARY
-      NAMES gdrapi
-    )
+    # find_library(GDRCOPY_LIBRARY
+    #   NAMES gdrapi
+    # )
 
     message(STATUS "Found Cray GTL library: " ${CRAY_MPI_GTL_CUDA_LIBRARY})
-    if (GDRCOPY_LIBRARY FOUND)
-        message(STATUS "Found GDRCopy library: " ${GDRCOPY_LIBRARY})
-    endif()
+    # if (GDRCOPY_LIBRARY FOUND)
+    #     message(STATUS "Found GDRCopy library: " ${GDRCOPY_LIBRARY})
+    # endif()
 endif()
 
 # HPC SDK
