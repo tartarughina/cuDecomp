@@ -173,9 +173,9 @@ target_link_libraries(cudecomp PRIVATE ${NCCL_LIBRARY})
 if (CRAY_CC_BIN)
     # In Cray environments, add links to GTL and GDRCopy libs for CUDA-aware support
     target_link_libraries(cudecomp PRIVATE ${CRAY_MPI_GTL_CUDA_LIBRARY})
-    if (GDRCOPY_LIBRARY FOUND)
-        target_link_libraries(cudecomp PRIVATE ${GDRCOPY_LIBRARY})
-    endif()
+    # if (GDRCOPY_LIBRARY FOUND)
+    #     target_link_libraries(cudecomp PRIVATE ${GDRCOPY_LIBRARY})
+    # endif()
 endif()
 
 if (CUDECOMP_ENABLE_NVTX)
