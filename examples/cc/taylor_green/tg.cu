@@ -271,13 +271,18 @@ public:
   // Timestepping scheme
   enum TimeScheme { RK1, RK4 };
 
-  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1) : N(N), nu(nu), dt(dt), tscheme(tscheme){};
+  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1, unified_mem = false, um_tuning = false)
+      : N(N), nu(nu), dt(dt), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning){};
   void finalize() {
     // Free memory
     for (int i = 0; i < 3; ++i) {
       CHECK_CUDA_EXIT(cudaFree(U[i]));
-      CHECK_CUDA_EXIT(cudaFree(dU[i]));
-      free(U_cpu[i]);
+      if (unified_mem) {
+        CHECK_CUDA_EXIT(cudaFree(dU[i]));
+      } else {
+        CHECK_CUDA_EXIT(cudaFree(dU[i]));
+        free(U_cpu[i]);
+      }
     }
     CHECK_CUDA_EXIT(cudaFree(cub_sum));
     CHECK_CUDA_EXIT(cudaFree(cub_work));
@@ -310,6 +315,11 @@ public:
     cudecompGridDescConfigSetDefaults(&config);
     config.pdims[0] = 0;
     config.pdims[1] = 0;
+
+    // Set the backend as NCCL by default, we're not intererested in MPI
+    config.transpose_comm_backend = CUDECOMP_TRANSPOSE_COMM_NCCL;
+    config.halo_comm_backend = CUDECOMP_HALO_COMM_NCCL;
+
     config.transpose_axis_contiguous[0] = true;
     config.transpose_axis_contiguous[1] = true;
     config.transpose_axis_contiguous[2] = true;
@@ -317,7 +327,8 @@ public:
     cudecompGridDescAutotuneOptions_t options;
     cudecompGridDescAutotuneOptionsSetDefaults(&options);
     options.dtype = get_cudecomp_datatype(complex_t(0));
-    options.autotune_transpose_backend = true;
+    // The backend autotuning is disabled otherwise NCCL may be replaced
+    options.autotune_transpose_backend = false;
 
     std::array<int, 3> gdim_c{N / 2 + 1, N, N};
     config.gdims[0] = gdim_c[0];
@@ -398,8 +409,20 @@ public:
     // Data arrays
     for (int i = 0; i < 3; ++i) {
       CHECK_CUDA_EXIT(cudaMalloc(&U[i], data_sz));
-      CHECK_CUDA_EXIT(cudaMalloc(&dU[i], data_sz));
-      U_cpu[i] = malloc(data_sz);
+
+      if (unified_mem) {
+        CHECK_CUDA_EXIT(cudaMallocManaged(&dU[i], data_sz));
+        if (um_tuning) {
+          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+        }
+        U_cpu[i] = dU[i];
+      } else {
+        CHECK_CUDA_EXIT(cudaMalloc(&dU[i], data_sz));
+        U_cpu[i] = malloc(data_sz);
+      }
+
       U_r[i] = static_cast<real_t*>(U[i]);
       U_c[i] = static_cast<complex_t*>(U[i]);
       dU_r[i] = static_cast<real_t*>(dU[i]);
@@ -523,9 +546,18 @@ public:
   // Simple solution write to CSV (readable by ParaView)
   void write_solution(std::string prefix) {
     // Copy solution to host
-    for (int i = 0; i < 3; ++i) {
-      CHECK_CUDA_EXIT(cudaMemcpy(U_cpu_r[i], U_r[i], pinfo_x_r.size * sizeof(*U_r[i]), cudaMemcpyDeviceToHost));
+    if (!unified_mem) {
+      for (int i = 0; i < 3; ++i) {
+        CHECK_CUDA_EXIT(cudaMemcpy(U_cpu_r[i], U_r[i], pinfo_x_r.size * sizeof(*U_r[i]), cudaMemcpyDeviceToHost));
+      }
     }
+
+    if (um_tuning) {
+      for (int i = 0; i < 3; ++i) {
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(U_r[i], pinfo_x_r.size * sizeof(*U_r[i]), -1));
+      }
+    }
+
     CHECK_CUDA_EXIT(cudaDeviceSynchronize());
 
     std::string fname;
@@ -671,6 +703,8 @@ private:
   real_t nu;
   real_t dt;
   TimeScheme tscheme;
+  bool unified_mem;
+  bool um_tuning;
   real_t flowtime = 0;
 
   // MPI variables
@@ -731,19 +765,22 @@ static void usage(const char* pname) {
     bname++;
   }
 
-  fprintf(
-      stdout,
-      "Usage: %s [options]\n"
-      "options:\n"
-      "\t-n|--N\n"
-      "\t\tDimension of grid. (default: 256) \n"
-      "\t-i|--niter (-i)\n"
-      "\t\tNumber of iterations to run. (default: 1000) \n"
-      "\t-p|--printfreq\n"
-      "\t\tFrequency of printing stats. (default: 100) \n"
-      "\t-o|--csv_prefix\n"
-      "\t\tFile prefix to write final solution to, in CSV format as <csv_prefix>_<rank>.csv. (default: no write) \n",
-      bname);
+  fprintf(stdout,
+          "Usage: %s [options]\n"
+          "options:\n"
+          "\t-n|--N\n"
+          "\t\tDimension of grid. (default: 256) \n"
+          "\t-i|--niter (-i)\n"
+          "\t\tNumber of iterations to run. (default: 1000) \n"
+          "\t-p|--printfreq\n"
+          "\t\tFrequency of printing stats. (default: 100) \n"
+          "\t-o|--csv_prefix\n"
+          "\t\tFile prefix to write final solution to, in CSV format as <csv_prefix>_<rank>.csv. (default: no write) \n"
+          "\t-u|--unified_mem\n"
+          "\t\tUse unified memory for data arrays. (default: false) \n"
+          "\t-t|--um_tuning\n"
+          "\t\tEnable unified memory tuning. (default: false) \n",
+          bname);
   exit(EXIT_SUCCESS);
 }
 
@@ -757,12 +794,16 @@ int main(int argc, char** argv) {
   int niter = 1000;
   int printfreq = 100;
   std::string csvfile;
+  bool unified_mem = false;
+  bool um_tuning = false;
 
   while (1) {
     static struct option long_options[] = {{"N", required_argument, 0, 'n'},
                                            {"niter", required_argument, 0, 'i'},
                                            {"printfreq", required_argument, 0, 'p'},
                                            {"csvfile", required_argument, 0, 'o'},
+                                           {"unified_mem", no_argument, 0, 'u'},
+                                           {"um_tuning", no_argument, 0, 't'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
@@ -776,6 +817,8 @@ int main(int argc, char** argv) {
     case 'i': niter = atoi(optarg); break;
     case 'p': printfreq = atoi(optarg); break;
     case 'o': csvfile = std::string(optarg); break;
+    case 'u': unified_mem = true; break;
+    case 't': um_tuning = true; break;
     case 'h': usage(argv[0]); break;
     case '?': exit(EXIT_FAILURE);
     default: fprintf(stderr, "unknown option: %c\n", ch); exit(EXIT_FAILURE);
@@ -787,7 +830,7 @@ int main(int argc, char** argv) {
   real_t dt = 0.001;
 
   // Construct and initialize solver
-  TGSolver solver(N, nu, dt, TGSolver::TimeScheme::RK4);
+  TGSolver solver(N, nu, dt, TGSolver::TimeScheme::RK4, unified_mem, um_tuning);
   solver.initialize(MPI_COMM_WORLD);
   solver.print_stats();
 
