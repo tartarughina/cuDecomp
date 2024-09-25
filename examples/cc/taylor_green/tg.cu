@@ -808,7 +808,7 @@ int main(int argc, char** argv) {
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
-    int ch = getopt_long(argc, argv, "n:i:p:o:h", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "n:i:p:o:uth", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {

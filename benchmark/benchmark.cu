@@ -119,6 +119,8 @@ static void usage(const char* pname) {
           "\t\tFlag to test out of place operation. \n"
           "\t-m|--use-managed-memory\n"
           "\t\tFlag to test operation with managed memory.\n"
+          "\t-u|--tuning\n"
+          "\t\tFlag to enable managed memory tuning.\n"
           "\t-s|--skip-correctness-tests\n"
           "\t\tFlag to skip checking results for correctness.\n\n",
           bname);
@@ -147,32 +149,26 @@ int main(int argc, char** argv) {
   std::array<bool, 3> axis_contiguous{};
   bool out_of_place = false;
   bool use_managed_memory = false;
+  bool managed_memory_tuning = false;
   int nwarmup = 3;
   int ntrials = 5;
   bool skip_correctness_tests = false;
   double skip_threshold = 0.0;
 
   while (1) {
-    static struct option long_options[] = {{"gx", required_argument, 0, 'x'},
-                                           {"gy", required_argument, 0, 'y'},
-                                           {"gz", required_argument, 0, 'z'},
-                                           {"backend", required_argument, 0, 'b'},
-                                           {"pr", required_argument, 0, 'r'},
-                                           {"pc", required_argument, 0, 'c'},
-                                           {"acx", required_argument, 0, '1'},
-                                           {"acy", required_argument, 0, '2'},
-                                           {"acz", required_argument, 0, '3'},
-                                           {"nwarmup", required_argument, 0, 'w'},
-                                           {"ntrials", required_argument, 0, 't'},
-                                           {"skip-threshold", required_argument, 0, 'k'},
-                                           {"out-of-place", no_argument, 0, 'o'},
-                                           {"use-managed-memory", no_argument, 0, 'm'},
-                                           {"skip-correctness-tests", no_argument, 0, 's'},
-                                           {"help", no_argument, 0, 'h'},
-                                           {0, 0, 0, 0}};
+    static struct option long_options[] = {
+        {"gx", required_argument, 0, 'x'},      {"gy", required_argument, 0, 'y'},
+        {"gz", required_argument, 0, 'z'},      {"backend", required_argument, 0, 'b'},
+        {"pr", required_argument, 0, 'r'},      {"pc", required_argument, 0, 'c'},
+        {"acx", required_argument, 0, '1'},     {"acy", required_argument, 0, '2'},
+        {"acz", required_argument, 0, '3'},     {"nwarmup", required_argument, 0, 'w'},
+        {"ntrials", required_argument, 0, 't'}, {"skip-threshold", required_argument, 0, 'k'},
+        {"out-of-place", no_argument, 0, 'o'},  {"use-managed-memory", no_argument, 0, 'm'},
+        {"tuning", no_argument, 0, 'u'},        {"skip-correctness-tests", no_argument, 0, 's'},
+        {"help", no_argument, 0, 'h'},          {0, 0, 0, 0}};
 
     int option_index = 0;
-    int ch = getopt_long(argc, argv, "x:y:z:b:r:c:1:2:3:w:t:k:b:omsh", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "x:y:z:b:r:c:1:2:3:w:t:k:b:omush", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -191,6 +187,7 @@ int main(int argc, char** argv) {
     case 'b': comm_backend = static_cast<cudecompTransposeCommBackend_t>(atoi(optarg)); break;
     case 'o': out_of_place = true; break;
     case 'm': use_managed_memory = true; break;
+    case 'u': managed_memory_tuning = true; break;
     case 's': skip_correctness_tests = true; break;
     case 'h':
       if (rank == 0) { usage(argv[0]); }
@@ -407,14 +404,20 @@ int main(int argc, char** argv) {
 #endif
 
   void* ref = malloc(data_sz);
-  void* data = malloc(data_sz);
-
+  void* data;
   void* work = malloc(work_sz);
   void *data_d, *data2_d, *work_d;
 
   if (use_managed_memory) {
     CHECK_CUDA_EXIT(cudaMallocManaged(&data_d, data_sz));
+    data = data_d;
+    if (managed_memory_tuning) {
+      CHECK_CUDA_EXIT(cudaMemAdvise(data_d, data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+      CHECK_CUDA_EXIT(cudaMemAdvise(data_d, data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+      CHECK_CUDA_EXIT(cudaMemAdvise(data_d, data_sz, cudaMemAdviseSetAccessedBy, cudaCpuDeviceId));
+    }
   } else {
+    data = malloc(data_sz);
     CHECK_CUDA_EXIT(cudaMalloc(&data_d, data_sz));
   }
   CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz));
@@ -456,13 +459,27 @@ int main(int argc, char** argv) {
       ref_r[i] = (i % pinfo_x_r.shape[0] < gx) ? dist(rng) : 0;
       data_r[i] = ref_r[i];
     }
-    CHECK_CUDA_EXIT(cudaMemcpy(data_r_d, data_r, pinfo_x_r.size * sizeof(real_t), cudaMemcpyHostToDevice));
+    if (use_managed_memory) {
+      if (managed_memory_tuning) {
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), local_rank));
+        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
+      }
+    } else {
+      CHECK_CUDA_EXIT(cudaMemcpy(data_r_d, data_r, pinfo_x_r.size * sizeof(real_t), cudaMemcpyHostToDevice));
+    }
 #else
     for (int64_t i = 0; i < 2 * pinfo_x_c.size; ++i) {
       ref_r[i] = dist(rng);
       data_r[i] = ref_r[i];
     }
-    CHECK_CUDA_EXIT(cudaMemcpy(data_r_d, data_r, 2 * pinfo_x_c.size * sizeof(real_t), cudaMemcpyHostToDevice));
+    if (use_managed_memory) {
+      if (managed_memory_tuning) {
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_r.size * sizeof(real_t), local_rank));
+        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
+      }
+    } else {
+      CHECK_CUDA_EXIT(cudaMemcpy(data_r_d, data_r, 2 * pinfo_x_c.size * sizeof(real_t), cudaMemcpyHostToDevice));
+    }
 #endif
   }
 
@@ -583,7 +600,15 @@ int main(int argc, char** argv) {
   double err_max_local = 0.0;
   if (!skip_correctness_tests) {
 #ifdef R2C
-    CHECK_CUDA_EXIT(cudaMemcpy(data_r, input_r, pinfo_x_r.size * sizeof(real_t), cudaMemcpyDeviceToHost));
+    if (use_managed_memory) {
+      if (managed_memory_tuning) {
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), -1));
+        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
+      }
+
+    } else {
+      CHECK_CUDA_EXIT(cudaMemcpy(data_r, input_r, pinfo_x_r.size * sizeof(real_t), cudaMemcpyDeviceToHost));
+    }
     for (int64_t i = 0; i < pinfo_x_r.size; ++i) {
       if (i % pinfo_x_r.shape[0] < gx) {
         real_t ref_val = ref_r[i];
@@ -597,7 +622,16 @@ int main(int argc, char** argv) {
       }
     }
 #else
-    CHECK_CUDA_EXIT(cudaMemcpy(data_r, input, 2 * pinfo_x_c.size * sizeof(real_t), cudaMemcpyDeviceToHost));
+    if (use_managed_memory) {
+      if (managed_memory_tuning) {
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_c.size * sizeof(real_t), -1));
+        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
+      }
+
+    } else {
+      CHECK_CUDA_EXIT(cudaMemcpy(data_r, input, 2 * pinfo_x_c.size * sizeof(real_t), cudaMemcpyDeviceToHost));
+    }
+
     for (int64_t i = 0; i < 2 * pinfo_x_c.size; ++i) {
       real_t ref_val = ref_r[i];
       real_t result_val = data_r[i];
@@ -650,6 +684,7 @@ int main(int argc, char** argv) {
            static_cast<int>(axis_contiguous[1]), static_cast<int>(axis_contiguous[2]));
     printf("\t Out of place: %s \n", (out_of_place) ? "true" : "false");
     printf("\t Managed memory: %s \n", (use_managed_memory) ? "true" : "false");
+    printf("\t Managed memory tuning: %s \n", (managed_memory_tuning) ? "true" : "false");
     printf("\t Time min/max/avg/std [ms]: %f/%f/%f/%f \n", times[0], times[1], times[2], times[3]);
     printf("\t Throughput min/max/avg/std [GFLOPS/s]: %f/%f/%f/%f \n", flops[0], flops[1], flops[2], flops[3]);
     if (skip_correctness_tests) {
@@ -661,6 +696,7 @@ int main(int argc, char** argv) {
   }
 
   CHECK_CUDA_EXIT(cudaFree(data_d));
+  if (out_of_place) { CHECK_CUDA_EXIT(cudaFree(data2_d)); }
   CHECK_CUDECOMP_EXIT(cudecompFree(handle, grid_desc_c, work_d));
 #ifdef R2C
   CHECK_CUDECOMP_EXIT(cudecompGridDescDestroy(handle, grid_desc_r));
