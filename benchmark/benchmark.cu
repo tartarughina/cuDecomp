@@ -424,6 +424,12 @@ int main(int argc, char** argv) {
   if (out_of_place) {
     if (use_managed_memory) {
       CHECK_CUDA_EXIT(cudaMallocManaged(&data2_d, data_sz));
+
+      if (managed_memory_tuning) {
+        CHECK_CUDA_EXIT(cudaMemAdvise(data2_d, data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+        CHECK_CUDA_EXIT(cudaMemAdvise(data2_d, data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+        CHECK_CUDA_EXIT(cudaMemAdvise(data2_d, data_sz, cudaMemAdviseSetAccessedBy, cudaCpuDeviceId));
+      }
     } else {
       CHECK_CUDA_EXIT(cudaMalloc(&data2_d, data_sz));
     }
