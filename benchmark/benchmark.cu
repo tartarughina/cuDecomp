@@ -480,7 +480,7 @@ int main(int argc, char** argv) {
     }
     if (use_managed_memory) {
       if (managed_memory_tuning) {
-        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_r.size * sizeof(real_t), local_rank));
+        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_c.size * sizeof(real_t), local_rank));
         CHECK_CUDA_EXIT(cudaDeviceSynchronize());
       }
     } else {

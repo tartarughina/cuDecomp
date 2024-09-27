@@ -271,7 +271,7 @@ public:
   // Timestepping scheme
   enum TimeScheme { RK1, RK4 };
 
-  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1, unified_mem = false, um_tuning = false)
+  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1, bool unified_mem = false, bool um_tuning = false)
       : N(N), nu(nu), dt(dt), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning){};
   void finalize() {
     // Free memory
