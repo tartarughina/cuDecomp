@@ -420,7 +420,8 @@ int main(int argc, char** argv) {
     data = malloc(data_sz);
     CHECK_CUDA_EXIT(cudaMalloc(&data_d, data_sz));
   }
-  CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz));
+  CHECK_CUDECOMP_EXIT(
+      cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz, use_managed_memory));
   if (out_of_place) {
     if (use_managed_memory) {
       CHECK_CUDA_EXIT(cudaMallocManaged(&data2_d, data_sz));

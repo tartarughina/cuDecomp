@@ -397,7 +397,7 @@ public:
     int64_t work_sz = std::max(work_sz_decomp, work_sz_cufft);
 
     // Workspace array
-    CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz));
+    CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz, unified_mem));
     work_r = static_cast<real_t*>(work);
     work_c = static_cast<complex_t*>(work);
 
@@ -409,17 +409,22 @@ public:
 
     // Data arrays
     for (int i = 0; i < 3; ++i) {
-      CHECK_CUDA_EXIT(cudaMalloc(&U[i], data_sz));
 
       if (unified_mem) {
+        CHECK_CUDA_EXIT(cudaMallocManaged(&U[i], data_sz));
         CHECK_CUDA_EXIT(cudaMallocManaged(&dU[i], data_sz));
         if (um_tuning) {
           CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
-          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
-          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
         }
-        U_cpu[i] = dU[i];
+        U_cpu[i] = U[i];
       } else {
+        CHECK_CUDA_EXIT(cudaMalloc(&U[i], data_sz));
         CHECK_CUDA_EXIT(cudaMalloc(&dU[i], data_sz));
         U_cpu[i] = malloc(data_sz);
       }
@@ -435,7 +440,17 @@ public:
     // Set up CUB arrays
     CHECK_CUDA_EXIT(cudaMallocManaged(&cub_sum, sizeof(real_t)));
     CHECK_CUDA_EXIT(cub::DeviceReduce::Sum(cub_work, cub_work_sz, U_r[0], cub_sum, pinfo_x_r.size));
-    CHECK_CUDA_EXIT(cudaMalloc(&cub_work, cub_work_sz));
+    if (unified_mem) {
+      CHECK_CUDA_EXIT(cudaMallocManaged(&cub_work, cub_work_sz));
+
+      if (um_tuning) {
+        CHECK_CUDA_EXIT(cudaMemAdvise(cub_work, cub_work_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+        // CHECK_CUDA_EXIT(cudaMemAdvise(cub_work, cub_work_sz, cudaMemAdviseSetAccessedBy, local_rank));
+        // CHECK_CUDA_EXIT(cudaMemAdvise(cub_work, cub_work_sz, cudaMemAdviseSetAccessedBy, -1));
+      }
+    } else {
+      CHECK_CUDA_EXIT(cudaMalloc(&cub_work, cub_work_sz));
+    }
 
     // Set timestepping variables
     switch (tscheme) {
@@ -456,7 +471,17 @@ public:
     Uh_c.resize(rk_b.size());
     for (int n = 0; n < rk_b.size(); ++n) {
       for (int i = 0; i < 3; ++i) {
-        CHECK_CUDA_EXIT(cudaMalloc(&Uh[n][i], data_sz));
+        if (unified_mem) {
+          CHECK_CUDA_EXIT(cudaMallocManaged(&Uh[n][i], data_sz));
+
+          if (um_tuning) {
+            CHECK_CUDA_EXIT(cudaMemAdvise(Uh[n][i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+            // CHECK_CUDA_EXIT(cudaMemAdvise(Uh[n][i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+            // CHECK_CUDA_EXIT(cudaMemAdvise(Uh[n][i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+          }
+        } else {
+          CHECK_CUDA_EXIT(cudaMalloc(&Uh[n][i], data_sz));
+        }
         Uh_r[n][i] = static_cast<real_t*>(Uh[n][i]);
         Uh_c[n][i] = static_cast<complex_t*>(Uh[n][i]);
       }
