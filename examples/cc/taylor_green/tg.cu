@@ -30,6 +30,7 @@
 
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -836,7 +837,20 @@ int main(int argc, char** argv) {
 
   // Run simulation
   CHECK_CUDA_EXIT(cudaDeviceSynchronize());
+
+  size_t free_mem, total_mem;
+  int device;
+  cudaGetDevice(&device);
+  // Get the available and total amount of memory on the GPU
+  cudaError_t cudaStatus = cudaMemGetInfo(&free_mem, &total_mem);
+
+  printf("Device: %d Total mem: %d Allocated mem: %d \n", device, total_mem / 1024 / 1024,
+         (total_mem - free_mem) / 1024 / 1024);
+
   CHECK_MPI_EXIT(MPI_Barrier(MPI_COMM_WORLD));
+
+  exit(-1);
+
   double ts = MPI_Wtime();
   double ts_step = MPI_Wtime();
   int count = 0;
