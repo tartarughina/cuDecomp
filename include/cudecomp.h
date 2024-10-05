@@ -333,11 +333,12 @@ cudecompResult_t cudecompGetDataTypeSize(cudecompDataType_t dtype, int64_t* dtyp
  * @param[in] grid_desc A cuDecomp grid descriptor
  * @param[out] buffer A pointer to the allocated memory
  * @param[out] buffer_size_bytes The size of requested allocation, in bytes
+ * @param[in] unified_memory A boolean flag to indicate if the memory should be allocated in unified memory space
  *
  * @return CUDECOMP_RESULT_SUCCESS on success or error code on failure.
  */
 cudecompResult_t cudecompMalloc(cudecompHandle_t handle, cudecompGridDesc_t grid_desc, void** buffer,
-                                size_t buffer_size_bytes);
+                                size_t buffer_size_bytes, bool unified_memory = false);
 
 /**
  * @brief Deallocation function for cuDecomp workspaces

@@ -696,7 +696,7 @@ cudecompResult_t cudecompGetHaloWorkspaceSize(cudecompHandle_t handle, cudecompG
 }
 
 cudecompResult_t cudecompMalloc(cudecompHandle_t handle, cudecompGridDesc_t grid_desc, void** buffer,
-                                size_t buffer_size_bytes, bool unified_memory = false) {
+                                size_t buffer_size_bytes, bool unified_memory) {
   using namespace cudecomp;
   try {
     checkHandle(handle);
