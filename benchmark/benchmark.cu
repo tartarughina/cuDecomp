@@ -608,6 +608,8 @@ int main(int argc, char** argv) {
   if (!skip_correctness_tests) {
 #ifdef R2C
     if (use_managed_memory) {
+      data_r = (real_t*)input_r;
+
       if (managed_memory_tuning) {
         CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), -1));
         CHECK_CUDA_EXIT(cudaDeviceSynchronize());
@@ -630,6 +632,8 @@ int main(int argc, char** argv) {
     }
 #else
     if (use_managed_memory) {
+      // Since out of place swaps the pointers we confirm that data points to the right location
+      data_r = (real_t*)input;
       if (managed_memory_tuning) {
         CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_c.size * sizeof(real_t), -1));
         CHECK_CUDA_EXIT(cudaDeviceSynchronize());
