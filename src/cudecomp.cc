@@ -198,7 +198,7 @@ static void inspectNvshmemEnvVars(cudecompHandle_t& handle) {
 } // namespace
 } // namespace cudecomp
 
-cudecompResult_t cudecompInit(cudecompHandle_t* handle_in, MPI_Comm mpi_comm, bool enable_um = false) {
+cudecompResult_t cudecompInit(cudecompHandle_t* handle_in, MPI_Comm mpi_comm, bool enable_um) {
   using namespace cudecomp;
   cudecompHandle_t handle = nullptr;
   try {
