@@ -197,7 +197,7 @@ extern "C" {
  *
  * @return CUDECOMP_RESULT_SUCCESS on success or error code on failure.
  */
-cudecompResult_t cudecompInit(cudecompHandle_t* handle, MPI_Comm mpi_comm);
+cudecompResult_t cudecompInit(cudecompHandle_t* handle, MPI_Comm mpi_comm, bool unified_memory = false);
 
 /**
  * @brief Finalizes the cuDecomp library and frees associated resources
@@ -338,7 +338,7 @@ cudecompResult_t cudecompGetDataTypeSize(cudecompDataType_t dtype, int64_t* dtyp
  * @return CUDECOMP_RESULT_SUCCESS on success or error code on failure.
  */
 cudecompResult_t cudecompMalloc(cudecompHandle_t handle, cudecompGridDesc_t grid_desc, void** buffer,
-                                size_t buffer_size_bytes, bool unified_memory = false);
+                                size_t buffer_size_bytes);
 
 /**
  * @brief Deallocation function for cuDecomp workspaces

@@ -55,6 +55,7 @@ namespace {
 
 // Static flag to disable multiple handle creation
 static bool cudecomp_initialized = false;
+static bool unified_memory = false;
 
 static ncclComm_t ncclCommFromMPIComm(MPI_Comm mpi_comm) {
   int rank, nranks;
@@ -197,7 +198,7 @@ static void inspectNvshmemEnvVars(cudecompHandle_t& handle) {
 } // namespace
 } // namespace cudecomp
 
-cudecompResult_t cudecompInit(cudecompHandle_t* handle_in, MPI_Comm mpi_comm) {
+cudecompResult_t cudecompInit(cudecompHandle_t* handle_in, MPI_Comm mpi_comm, bool enable_um = false) {
   using namespace cudecomp;
   cudecompHandle_t handle = nullptr;
   try {
@@ -230,6 +231,8 @@ cudecompResult_t cudecompInit(cudecompHandle_t* handle_in, MPI_Comm mpi_comm) {
 
     handle->initialized = true;
     cudecomp_initialized = true;
+    // Enable unified memory if requested as a static variable
+    unified_memory = enable_um;
 
     *handle_in = handle;
 
@@ -374,11 +377,15 @@ cudecompResult_t cudecompGridDescCreate(cudecompHandle_t handle, cudecompGridDes
     // Run autotuning if requested
     if (options) {
       if (options->grid_mode == CUDECOMP_AUTOTUNE_GRID_TRANSPOSE) {
-        if (autotune_transpose_backend || autotune_pdims) { autotuneTransposeBackend(handle, grid_desc, options); }
-        if (autotune_halo_backend) { autotuneHaloBackend(handle, grid_desc, options); }
+        if (autotune_transpose_backend || autotune_pdims) {
+          autotuneTransposeBackend(handle, grid_desc, options, unified_memory);
+        }
+        if (autotune_halo_backend) { autotuneHaloBackend(handle, grid_desc, options, unified_memory); }
       } else if (options->grid_mode == CUDECOMP_AUTOTUNE_GRID_HALO) {
-        if (autotune_halo_backend || autotune_pdims) { autotuneHaloBackend(handle, grid_desc, options); }
-        if (autotune_transpose_backend) { autotuneTransposeBackend(handle, grid_desc, options); }
+        if (autotune_halo_backend || autotune_pdims) {
+          autotuneHaloBackend(handle, grid_desc, options, unified_memory);
+        }
+        if (autotune_transpose_backend) { autotuneTransposeBackend(handle, grid_desc, options, unified_memory); }
       } else {
         THROW_INVALID_USAGE("unknown value of autotune_grid_mode encountered.");
       }
@@ -696,7 +703,7 @@ cudecompResult_t cudecompGetHaloWorkspaceSize(cudecompHandle_t handle, cudecompG
 }
 
 cudecompResult_t cudecompMalloc(cudecompHandle_t handle, cudecompGridDesc_t grid_desc, void** buffer,
-                                size_t buffer_size_bytes, bool unified_memory) {
+                                size_t buffer_size_bytes) {
   using namespace cudecomp;
   try {
     checkHandle(handle);

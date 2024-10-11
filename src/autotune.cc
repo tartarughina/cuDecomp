@@ -85,7 +85,7 @@ template <typename T> static std::vector<T> processTimings(cudecompHandle_t hand
 } // namespace
 
 void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
-                              const cudecompGridDescAutotuneOptions_t* options) {
+                              const cudecompGridDescAutotuneOptions_t* options, bool unified_memory) {
   if (handle->rank == 0) printf("CUDECOMP: Running transpose autotuning...\n");
   CHECK_MPI(MPI_Barrier(handle->mpi_comm));
   double t_start = MPI_Wtime();
@@ -184,10 +184,18 @@ void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_d
     if (data_sz_new > data_sz) {
       data_sz = data_sz_new;
       if (data) CHECK_CUDA(cudaFree(data));
-      CHECK_CUDA(cudaMalloc(&data, data_sz));
+      if (unified_memory) {
+        CHECK_CUDA(cudaMallocManaged(&data, data_sz));
+      } else {
+        CHECK_CUDA(cudaMalloc(&data, data_sz));
+      }
       if (need_data2) {
         if (data2) CHECK_CUDA(cudaFree(data2));
-        CHECK_CUDA(cudaMalloc(&data2, data_sz));
+        if (unified_memory) {
+          CHECK_CUDA(cudaMallocManaged(&data2, data_sz));
+        } else {
+          CHECK_CUDA(cudaMalloc(&data2, data_sz));
+        }
       }
     }
 
@@ -215,7 +223,13 @@ void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_d
         CHECK_CUDECOMP(cudecompMalloc(handle, grid_desc, reinterpret_cast<void**>(&work_nvshmem), work_sz));
         grid_desc->config.transpose_comm_backend = tmp;
 
-        auto ret = cudaMalloc(&work, work_sz);
+        auto ret;
+        if (unified_memory) {
+          ret = cudaMallocManaged(&work, work_sz);
+        } else {
+          ret = cudaMalloc(&work, work_sz);
+        }
+
         if (ret == cudaErrorMemoryAllocation) {
           if (handle->rank == 0) {
             printf("CUDECOMP:WARN: Cannot allocate separate workspace for non-NVSHMEM backends during "
@@ -245,7 +259,11 @@ void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_d
           }
 #endif
         }
-        CHECK_CUDA(cudaMalloc(&work, work_sz));
+        if (unified_memory) {
+          CHECK_CUDA(cudaMallocManaged(&work, work_sz));
+        } else {
+          CHECK_CUDA(cudaMalloc(&work, work_sz));
+        }
         if (need_nccl && handle->nccl_enable_ubr) {
 #if NCCL_VERSION_CODE >= NCCL_VERSION(2, 19, 0)
           CHECK_NCCL(ncclCommRegister(handle->nccl_comm, work, work_sz, &nccl_work_ubr_handles[0]));
@@ -491,7 +509,7 @@ void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_d
 }
 
 void autotuneHaloBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
-                         const cudecompGridDescAutotuneOptions_t* options) {
+                         const cudecompGridDescAutotuneOptions_t* options, bool unified_memory) {
   if (handle->rank == 0) {
     printf("CUDECOMP: Running halo autotuning...\n");
     printf("CUDECOMP: Autotune halo axis: %s\n", options->halo_axis == 0 ? "x" : (options->halo_axis == 1 ? "y" : "z"));
@@ -580,7 +598,11 @@ void autotuneHaloBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
     if (data_sz_new > data_sz) {
       data_sz = data_sz_new;
       if (data) CHECK_CUDA(cudaFree(data));
-      CHECK_CUDA(cudaMalloc(&data, data_sz));
+      if (unified_memory) {
+        CHECK_CUDA(cudaMallocManaged(&data, data_sz));
+      } else {
+        CHECK_CUDA(cudaMalloc(&data, data_sz));
+      }
     }
 
     // For nvshmem, buffers must be the same size. Find global maximums.
@@ -607,7 +629,13 @@ void autotuneHaloBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
         CHECK_CUDECOMP(cudecompMalloc(handle, grid_desc, reinterpret_cast<void**>(&work_nvshmem), work_sz));
         grid_desc->config.halo_comm_backend = tmp;
 
-        auto ret = cudaMalloc(&work, work_sz);
+        auto ret;
+        if (unified_memory) {
+          ret = cudaMallocManaged(&work, work_sz);
+        } else {
+          ret = cudaMalloc(&work, work_sz);
+        }
+
         if (ret == cudaErrorMemoryAllocation) {
           if (handle->rank == 0) {
             printf("CUDECOMP:WARN: Cannot allocate separate workspace for non-NVSHMEM backends during "
@@ -637,7 +665,11 @@ void autotuneHaloBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
           }
 #endif
         }
-        CHECK_CUDA(cudaMalloc(&work, work_sz));
+        if (unified_memory) {
+          CHECK_CUDA(cudaMallocManaged(&work, work_sz));
+        } else {
+          CHECK_CUDA(cudaMalloc(&work, work_sz));
+        }
         if (need_nccl && handle->nccl_enable_ubr) {
 #if NCCL_VERSION_CODE >= NCCL_VERSION(2, 19, 0)
           CHECK_NCCL(ncclCommRegister(handle->nccl_comm, work, work_sz, &nccl_work_ubr_handles[0]));

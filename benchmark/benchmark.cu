@@ -122,7 +122,11 @@ static void usage(const char* pname) {
           "\t-u|--tuning\n"
           "\t\tFlag to enable managed memory tuning.\n"
           "\t-s|--skip-correctness-tests\n"
-          "\t\tFlag to skip checking results for correctness.\n\n",
+          "\t\tFlag to skip checking results for correctness.\n\n"
+          "\t-v|--oversub\n"
+          "\t\tUnified Memory oversubscription factor to enable. (default: 0 options: 1->1.5x, 2->2x)"
+          "\t-h|--help\n"
+          "\t\tPrint this help message.\n",
           bname);
   exit(EXIT_SUCCESS);
 }
@@ -154,21 +158,32 @@ int main(int argc, char** argv) {
   int ntrials = 5;
   bool skip_correctness_tests = false;
   double skip_threshold = 0.0;
+  int oversub = 0;
+  int oversub_ptr = nullptr;
 
   while (1) {
-    static struct option long_options[] = {
-        {"gx", required_argument, 0, 'x'},      {"gy", required_argument, 0, 'y'},
-        {"gz", required_argument, 0, 'z'},      {"backend", required_argument, 0, 'b'},
-        {"pr", required_argument, 0, 'r'},      {"pc", required_argument, 0, 'c'},
-        {"acx", required_argument, 0, '1'},     {"acy", required_argument, 0, '2'},
-        {"acz", required_argument, 0, '3'},     {"nwarmup", required_argument, 0, 'w'},
-        {"ntrials", required_argument, 0, 't'}, {"skip-threshold", required_argument, 0, 'k'},
-        {"out-of-place", no_argument, 0, 'o'},  {"use-managed-memory", no_argument, 0, 'm'},
-        {"tuning", no_argument, 0, 'u'},        {"skip-correctness-tests", no_argument, 0, 's'},
-        {"help", no_argument, 0, 'h'},          {0, 0, 0, 0}};
+    static struct option long_options[] = {{"gx", required_argument, 0, 'x'},
+                                           {"gy", required_argument, 0, 'y'},
+                                           {"gz", required_argument, 0, 'z'},
+                                           {"backend", required_argument, 0, 'b'},
+                                           {"pr", required_argument, 0, 'r'},
+                                           {"pc", required_argument, 0, 'c'},
+                                           {"acx", required_argument, 0, '1'},
+                                           {"acy", required_argument, 0, '2'},
+                                           {"acz", required_argument, 0, '3'},
+                                           {"nwarmup", required_argument, 0, 'w'},
+                                           {"ntrials", required_argument, 0, 't'},
+                                           {"skip-threshold", required_argument, 0, 'k'},
+                                           {"out-of-place", no_argument, 0, 'o'},
+                                           {"use-managed-memory", no_argument, 0, 'm'},
+                                           {"tuning", no_argument, 0, 'u'},
+                                           {"skip-correctness-tests", no_argument, 0, 's'},
+                                           {"help", no_argument, 0, 'h'},
+                                           {"oversub", required_argument, 0, 'v'},
+                                           {0, 0, 0, 0}};
 
     int option_index = 0;
-    int ch = getopt_long(argc, argv, "x:y:z:b:r:c:1:2:3:w:t:k:b:omush", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "x:y:z:b:r:c:1:2:3:w:t:k:b:omushv:", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -189,6 +204,13 @@ int main(int argc, char** argv) {
     case 'm': use_managed_memory = true; break;
     case 'u': managed_memory_tuning = true; break;
     case 's': skip_correctness_tests = true; break;
+    case 'v':
+      oversub = atoi(optarg);
+      if (oversub != 1 && oversub != 2) {
+        fprintf(stderr, "Invalid value for oversub: %d\n", oversub);
+        exit(EXIT_FAILURE);
+      }
+      break;
     case 'h':
       if (rank == 0) { usage(argv[0]); }
       exit(EXIT_SUCCESS);
@@ -197,13 +219,19 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (oversub) {
+    int size = 0;
+    CHECK_CUDA_EXIT(cudaSetDevice(local_rank));
+    CHECK_CUDA_EXIT(cudaMalloc(&oversub_ptr, size));
+  }
+
   std::array<int, 2> pdims;
   pdims[0] = pr;
   pdims[1] = pc;
 
   // Initialize cuDecomp
   cudecompHandle_t handle;
-  CHECK_CUDECOMP_EXIT(cudecompInit(&handle, MPI_COMM_WORLD));
+  CHECK_CUDECOMP_EXIT(cudecompInit(&handle, MPI_COMM_WORLD, use_managed_memory));
 
   // Setup grid descriptors
   cudecompGridDescConfig_t config;
@@ -421,7 +449,7 @@ int main(int argc, char** argv) {
     CHECK_CUDA_EXIT(cudaMalloc(&data_d, data_sz));
   }
   CHECK_CUDECOMP_EXIT(
-      cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz, use_managed_memory));
+      cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz));
   if (out_of_place) {
     if (use_managed_memory) {
       CHECK_CUDA_EXIT(cudaMallocManaged(&data2_d, data_sz));
@@ -715,4 +743,6 @@ int main(int argc, char** argv) {
   CHECK_CUDECOMP_EXIT(cudecompGridDescDestroy(handle, grid_desc_c));
   CHECK_CUDECOMP_EXIT(cudecompFinalize(handle));
   CHECK_MPI_EXIT(MPI_Finalize());
+
+  if (oversub) { CHECK_CUDA_EXIT(cudaFree(oversub_ptr)); }
 }

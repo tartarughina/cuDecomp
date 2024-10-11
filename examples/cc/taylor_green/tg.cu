@@ -309,7 +309,7 @@ public:
     if (rank == 0) printf("running on %d x %d x %d spatial grid...\n", N, N, N);
 
     // Initialize cuDecomp
-    cudecompInit(&handle, mpi_comm);
+    cudecompInit(&handle, mpi_comm, unified_mem);
 
     // Setup grid descriptors, autotuning of process grid and backend selection
     cudecompGridDescConfig_t config;
@@ -397,7 +397,7 @@ public:
     int64_t work_sz = std::max(work_sz_decomp, work_sz_cufft);
 
     // Workspace array
-    CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz, unified_mem));
+    CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz));
     work_r = static_cast<real_t*>(work);
     work_c = static_cast<complex_t*>(work);
 
@@ -805,7 +805,11 @@ static void usage(const char* pname) {
           "\t-u|--unified_mem\n"
           "\t\tUse unified memory for data arrays. (default: false) \n"
           "\t-t|--um_tuning\n"
-          "\t\tEnable unified memory tuning. (default: false) \n",
+          "\t\tEnable unified memory tuning. (default: false) \n"
+          "\t-s|--oversub\n"
+          "\t\tOversubscribe unified memory. (default: 0 options: 1->1.5x 2->2x) \n"
+          "\t-h|--help\n"
+          "\t\tPrint this message and exit.\n,
           bname);
   exit(EXIT_SUCCESS);
 }
@@ -822,6 +826,8 @@ int main(int argc, char** argv) {
   std::string csvfile;
   bool unified_mem = false;
   bool um_tuning = false;
+  int oversub = 0;
+  int* oversub_ptr = nullptr;
 
   while (1) {
     static struct option long_options[] = {{"N", required_argument, 0, 'n'},
@@ -830,11 +836,12 @@ int main(int argc, char** argv) {
                                            {"csvfile", required_argument, 0, 'o'},
                                            {"unified_mem", no_argument, 0, 'u'},
                                            {"um_tuning", no_argument, 0, 't'},
+                                           {"oversub", required_argument, 0, 's'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
-    int ch = getopt_long(argc, argv, "n:i:p:o:uth", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "n:i:p:o:uts:h", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -845,6 +852,13 @@ int main(int argc, char** argv) {
     case 'o': csvfile = std::string(optarg); break;
     case 'u': unified_mem = true; break;
     case 't': um_tuning = true; break;
+    case 's':
+      oversub = atoi(optarg);
+      if (oversub != 1 && oversub != 2) {
+        fprintf(stderr, "oversub must be 1 or 2\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
     case 'h': usage(argv[0]); break;
     case '?': exit(EXIT_FAILURE);
     default: fprintf(stderr, "unknown option: %c\n", ch); exit(EXIT_FAILURE);
@@ -854,6 +868,16 @@ int main(int argc, char** argv) {
   // Physical parameters
   real_t nu = 0.000625;
   real_t dt = 0.001;
+
+  if (oversub) {
+    int device;
+    MPI_Comm mpi_local_comm;
+    CHECK_MPI_EXIT(MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &mpi_local_comm));
+    CHECK_MPI_EXIT(MPI_Comm_rank(mpi_local_comm, &device));
+    CHECK_CUDA_EXIT(cudaSetDevice(device));
+    int size = 0;
+    CHECK_CUDA_EXIT(cudaMalloc(&oversub_ptr, size));
+  }
 
   // Construct and initialize solver
   TGSolver solver(N, nu, dt, TGSolver::TimeScheme::RK4, unified_mem, um_tuning);
@@ -895,4 +919,6 @@ int main(int argc, char** argv) {
 
   CHECK_CUDA_EXIT(cudaDeviceSynchronize());
   CHECK_MPI_EXIT(MPI_Finalize());
+
+  if (oversub) { CHECK_CUDA_EXIT(cudaFree(oversub_ptr)); }
 }

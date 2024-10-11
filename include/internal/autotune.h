@@ -35,9 +35,9 @@
 
 namespace cudecomp {
 void autotuneTransposeBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
-                              const cudecompGridDescAutotuneOptions_t* options);
+                              const cudecompGridDescAutotuneOptions_t* options, bool unified_memory = false);
 void autotuneHaloBackend(cudecompHandle_t handle, cudecompGridDesc_t grid_desc,
-                         const cudecompGridDescAutotuneOptions_t* options);
+                         const cudecompGridDescAutotuneOptions_t* options, bool unified_memory = false);
 } // namespace cudecomp
 
 #endif // CUDECOMP_AUTOTUNE_H
