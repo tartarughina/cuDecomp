@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
   bool skip_correctness_tests = false;
   double skip_threshold = 0.0;
   int oversub = 0;
-  int oversub_ptr = nullptr;
+  void* oversub_ptr = nullptr;
 
   while (1) {
     static struct option long_options[] = {{"gx", required_argument, 0, 'x'},
@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
   }
 
   if (oversub) {
-    int size = 0;
+    size_t size = 0;
     CHECK_CUDA_EXIT(cudaSetDevice(local_rank));
     CHECK_CUDA_EXIT(cudaMalloc(&oversub_ptr, size));
   }
@@ -640,8 +640,8 @@ int main(int argc, char** argv) {
 
       if (managed_memory_tuning) {
         CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), -1));
-        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
       }
+      CHECK_CUDA_EXIT(cudaDeviceSynchronize());
 
     } else {
       CHECK_CUDA_EXIT(cudaMemcpy(data_r, input_r, pinfo_x_r.size * sizeof(real_t), cudaMemcpyDeviceToHost));
@@ -664,9 +664,9 @@ int main(int argc, char** argv) {
       data_r = (real_t*)input;
       if (managed_memory_tuning) {
         CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, 2 * pinfo_x_c.size * sizeof(real_t), -1));
-        CHECK_CUDA_EXIT(cudaDeviceSynchronize());
       }
 
+      CHECK_CUDA_EXIT(cudaDeviceSynchronize());
     } else {
       CHECK_CUDA_EXIT(cudaMemcpy(data_r, input, 2 * pinfo_x_c.size * sizeof(real_t), cudaMemcpyDeviceToHost));
     }

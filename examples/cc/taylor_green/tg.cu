@@ -809,7 +809,7 @@ static void usage(const char* pname) {
           "\t-s|--oversub\n"
           "\t\tOversubscribe unified memory. (default: 0 options: 1->1.5x 2->2x) \n"
           "\t-h|--help\n"
-          "\t\tPrint this message and exit.\n,
+          "\t\tPrint this message and exit.\n",
           bname);
   exit(EXIT_SUCCESS);
 }
