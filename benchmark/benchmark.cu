@@ -229,6 +229,8 @@ int main(int argc, char** argv) {
   pdims[0] = pr;
   pdims[1] = pc;
 
+  double init_start, init_end, init_time;
+  init_start = MPI_WTime();
   // Initialize cuDecomp
   cudecompHandle_t handle;
   CHECK_CUDECOMP_EXIT(cudecompInit(&handle, MPI_COMM_WORLD, use_managed_memory));
@@ -528,6 +530,8 @@ int main(int argc, char** argv) {
   if (out_of_place) output_r = data2_r_d;
 #endif
 
+  init_end = MPI_Wtime();
+
   std::vector<double> trial_times(ntrials);
   double ts = 0;
   for (int trial = 0; trial < nwarmup + ntrials; ++trial) {
@@ -704,6 +708,10 @@ int main(int argc, char** argv) {
   auto times = process_timings(trial_times, 1000.);
   auto flops = process_timings(trial_flops);
 
+  double init_time = init_end - init_start;
+  CHECK_MPI_EXIT(MPI_Allreduce(MPI_IN_PLACE, &init_time, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD));
+    init_time /= nranks;
+
   if (rank == 0) {
     printf("Result Summary:\n");
     printf("\t FFT size: %d x %d x %d  \n", gx, gy, gz);
@@ -724,6 +732,8 @@ int main(int argc, char** argv) {
     printf("\t Out of place: %s \n", (out_of_place) ? "true" : "false");
     printf("\t Managed memory: %s \n", (use_managed_memory) ? "true" : "false");
     printf("\t Managed memory tuning: %s \n", (managed_memory_tuning) ? "true" : "false");
+    printf("\t Init time: %f\n", init_time);
+    printf("\t Forward/Backward time stats\n");
     printf("\t Time min/max/avg/std [ms]: %f/%f/%f/%f \n", times[0], times[1], times[2], times[3]);
     printf("\t Throughput min/max/avg/std [GFLOPS/s]: %f/%f/%f/%f \n", flops[0], flops[1], flops[2], flops[3]);
     if (skip_correctness_tests) {
