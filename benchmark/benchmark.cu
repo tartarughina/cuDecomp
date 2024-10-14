@@ -230,7 +230,7 @@ int main(int argc, char** argv) {
   pdims[1] = pc;
 
   double init_start, init_end, init_time;
-  init_start = MPI_WTime();
+  init_start = MPI_Wtime();
   // Initialize cuDecomp
   cudecompHandle_t handle;
   CHECK_CUDECOMP_EXIT(cudecompInit(&handle, MPI_COMM_WORLD, use_managed_memory));
@@ -708,7 +708,7 @@ int main(int argc, char** argv) {
   auto times = process_timings(trial_times, 1000.);
   auto flops = process_timings(trial_flops);
 
-  double init_time = init_end - init_start;
+  init_time = init_end - init_start;
   CHECK_MPI_EXIT(MPI_Allreduce(MPI_IN_PLACE, &init_time, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD));
     init_time /= nranks;
 
