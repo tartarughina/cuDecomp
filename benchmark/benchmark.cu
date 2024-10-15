@@ -450,8 +450,7 @@ int main(int argc, char** argv) {
     data = malloc(data_sz);
     CHECK_CUDA_EXIT(cudaMalloc(&data_d, data_sz));
   }
-  CHECK_CUDECOMP_EXIT(
-      cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz));
+  CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, reinterpret_cast<void**>(&work_d), work_sz));
   if (out_of_place) {
     if (use_managed_memory) {
       CHECK_CUDA_EXIT(cudaMallocManaged(&data2_d, data_sz));
@@ -642,9 +641,7 @@ int main(int argc, char** argv) {
     if (use_managed_memory) {
       data_r = (real_t*)input_r;
 
-      if (managed_memory_tuning) {
-        CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), -1));
-      }
+      if (managed_memory_tuning) { CHECK_CUDA_EXIT(cudaMemPrefetchAsync(data_r, pinfo_x_r.size * sizeof(real_t), -1)); }
       CHECK_CUDA_EXIT(cudaDeviceSynchronize());
 
     } else {
@@ -714,18 +711,18 @@ int main(int argc, char** argv) {
 
   CHECK_MPI_EXIT(MPI_Reduce(&init_time, &init_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD));
   CHECK_MPI_EXIT(MPI_Reduce(&init_time, &init_min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD));
-  CHECK_MPI_EXIT(MPI_Allreduce(MPI_IN_PLACE, &init_time, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD));
-    init_avg = init_time / nranks;
+  CHECK_MPI_EXIT(MPI_Allreduce(&init_time, &init_avg, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD));
+  init_avg /= nranks;
 
-    double local_squared_diff = (init_time - init_avg) * (init_time - init_avg);
-    double init_sum_of_squares = 0.0;
+  double local_squared_diff = (init_time - init_avg) * (init_time - init_avg);
+  double init_sum_of_squares = 0.0;
 
-    CHECK_MPI_EXIT(MPI_Reduce(&local_squared_diff, &init_sum_of_squares, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD));
+  CHECK_MPI_EXIT(MPI_Reduce(&local_squared_diff, &init_sum_of_squares, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD));
 
-    if (rank == 0) {
-        double variance = init_sum_of_squares / nranks;
-        init_std = std::sqrt(variance);
-    }
+  if (rank == 0) {
+    double variance = init_sum_of_squares / nranks;
+    init_std = std::sqrt(variance);
+  }
 
   if (rank == 0) {
     printf("Result Summary:\n");
