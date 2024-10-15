@@ -709,8 +709,23 @@ int main(int argc, char** argv) {
   auto flops = process_timings(trial_flops);
 
   init_time = init_end - init_start;
+
+  double init_avg, init_min, init_max, init_std;
+
+  CHECK_MPI_EXIT(MPI_Reduce(&init_time, &init_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD));
+  CHECK_MPI_EXIT(MPI_Reduce(&init_time, &init_min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD));
   CHECK_MPI_EXIT(MPI_Allreduce(MPI_IN_PLACE, &init_time, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD));
-    init_time /= nranks;
+    init_avg = init_time / nranks;
+
+    double local_squared_diff = (init_time - init_avg) * (init_time - init_avg);
+    double init_sum_of_squares = 0.0;
+
+    CHECK_MPI_EXIT(MPI_Reduce(&local_squared_diff, &init_sum_of_squares, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD));
+
+    if (rank == 0) {
+        double variance = init_sum_of_squares / nranks;
+        init_std = std::sqrt(variance);
+    }
 
   if (rank == 0) {
     printf("Result Summary:\n");
@@ -732,7 +747,7 @@ int main(int argc, char** argv) {
     printf("\t Out of place: %s \n", (out_of_place) ? "true" : "false");
     printf("\t Managed memory: %s \n", (use_managed_memory) ? "true" : "false");
     printf("\t Managed memory tuning: %s \n", (managed_memory_tuning) ? "true" : "false");
-    printf("\t Init time: %f\n", init_time);
+    printf("\t Init time min/max/avg/std [s]: %f/%f/%f/%f \n", init_min, init_max, init_avg, init_std);
     printf("\t Forward/Backward time stats\n");
     printf("\t Time min/max/avg/std [ms]: %f/%f/%f/%f \n", times[0], times[1], times[2], times[3]);
     printf("\t Throughput min/max/avg/std [GFLOPS/s]: %f/%f/%f/%f \n", flops[0], flops[1], flops[2], flops[3]);
