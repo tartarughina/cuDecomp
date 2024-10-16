@@ -460,9 +460,9 @@ int main(int argc, char** argv) {
     }
 
     switch (gx) {
-    case 256: buffer_size = free_mem - (TO_BYTE(2500)) / factor; break;
-    case 512: buffer_size = free_mem - (TO_BYTE(3200)) / factor; break;
-    case 1024: buffer_size = free_mem - (TO_BYTE(10200)) / factor; break;
+    case 256: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
+    case 512: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
+    case 1024: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
     default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
     }
 

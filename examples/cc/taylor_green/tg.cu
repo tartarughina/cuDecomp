@@ -425,9 +425,9 @@ public:
       }
 
       switch (N) {
-      case 128: buffer_size = free_mem - (TO_BYTE(1250)) / factor; break;
-      case 256: buffer_size = free_mem - (TO_BYTE(2500)) / factor; break;
-      case 512: buffer_size = free_mem - (TO_BYTE(5000)) / factor; break;
+      case 128: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
+      case 256: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
+      case 512: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
       default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
       }
 
