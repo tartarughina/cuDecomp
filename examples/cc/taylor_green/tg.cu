@@ -907,7 +907,7 @@ int main(int argc, char** argv) {
     default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
     }
 
-    CHECK_CUDA_EXIT(cudaMalloc((void **)&oversub_ptr, buffer_size);
+    CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
   }
 
   // Construct and initialize solver
