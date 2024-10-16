@@ -27,6 +27,11 @@ using real_t = double;
 #endif
 using complex_t = cuda::std::complex<real_t>;
 
+#define OVERSUB_FACTOR_1 1.5
+#define OVERSUB_FACTOR_2 2.0
+
+#define TO_BYTE(X) static_cast<size_t>(X) * 1024 * 1024
+
 #ifdef USE_FLOAT
 #ifdef R2C
 static cufftType get_cufft_type_r2c(float) { return CUFFT_R2C; }
@@ -220,9 +225,35 @@ int main(int argc, char** argv) {
   }
 
   if (oversub) {
-    size_t size = 0;
     CHECK_CUDA_EXIT(cudaSetDevice(local_rank));
-    CHECK_CUDA_EXIT(cudaMalloc(&oversub_ptr, size));
+
+    if (!use_managed_memory) {
+      fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
+      exit(-1);
+    }
+
+    size_t buffer_size, free_mem, total_mem;
+    double factor;
+
+    CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
+
+    if (oversub == 1) {
+      factor = OVERSUB_FACTOR_1;
+    } else if (oversub == 2) {
+      factor = OVERSUB_FACTOR_2;
+    } else {
+      fprintf(stderr, "Invalid oversub option: %d\n", oversub);
+      exit(EXIT_FAILURE);
+    }
+
+    switch (batch) {
+    case 256: buffer_size = free_mem - (TO_BYTE(2700)) / factor; break;
+    case 512: buffer_size = free_mem - (TO_BYTE(4100)) / factor; break;
+    case 1024: buffer_size = free_mem - (TO_BYTE(14800)) / factor; break;
+    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
+    }
+
+    CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
   }
 
   std::array<int, 2> pdims;

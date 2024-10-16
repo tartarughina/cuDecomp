@@ -51,6 +51,11 @@
 
 #define PI (std::atan(1.0) * 4.0)
 
+#define OVERSUB_FACTOR_1 1.5
+#define OVERSUB_FACTOR_2 2.0
+
+#define TO_BYTE(X) static_cast<size_t>(X) * 1024 * 1024
+
 // Error check macros
 #define CHECK_CUDECOMP_EXIT(call)                                                                                      \
   do {                                                                                                                 \
@@ -827,7 +832,7 @@ int main(int argc, char** argv) {
   bool unified_mem = false;
   bool um_tuning = false;
   int oversub = 0;
-  int* oversub_ptr = nullptr;
+  void* oversub_ptr = nullptr;
 
   while (1) {
     static struct option long_options[] = {{"N", required_argument, 0, 'n'},
@@ -875,8 +880,34 @@ int main(int argc, char** argv) {
     CHECK_MPI_EXIT(MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &mpi_local_comm));
     CHECK_MPI_EXIT(MPI_Comm_rank(mpi_local_comm, &device));
     CHECK_CUDA_EXIT(cudaSetDevice(device));
-    int size = 0;
-    CHECK_CUDA_EXIT(cudaMalloc(&oversub_ptr, size));
+
+    if (!unified_mem) {
+      fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
+      exit(-1);
+    }
+
+    size_t buffer_size, free_mem, total_mem;
+    double factor;
+
+    CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
+
+    if (oversub == 1) {
+      factor = OVERSUB_FACTOR_1;
+    } else if (oversub == 2) {
+      factor = OVERSUB_FACTOR_2;
+    } else {
+      fprintf(stderr, "Invalid oversub option: %d\n", oversub);
+      exit(EXIT_FAILURE);
+    }
+
+    switch (batch) {
+    case 128: buffer_size = free_mem - (TO_BYTE(1600)) / factor; break;
+    case 256: buffer_size = free_mem - (TO_BYTE(3200)) / factor; break;
+    case 512: buffer_size = free_mem - (TO_BYTE(7000)) / factor; break;
+    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
+    }
+
+    CHECK_CUDA_EXIT(cudaMalloc((void **)&oversub_ptr, buffer_size);
   }
 
   // Construct and initialize solver
