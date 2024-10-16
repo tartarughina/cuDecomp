@@ -900,7 +900,7 @@ int main(int argc, char** argv) {
       exit(EXIT_FAILURE);
     }
 
-    switch (batch) {
+    switch (N) {
     case 128: buffer_size = free_mem - (TO_BYTE(1600)) / factor; break;
     case 256: buffer_size = free_mem - (TO_BYTE(3200)) / factor; break;
     case 512: buffer_size = free_mem - (TO_BYTE(7000)) / factor; break;
