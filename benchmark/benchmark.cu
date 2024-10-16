@@ -224,38 +224,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (oversub) {
-    CHECK_CUDA_EXIT(cudaSetDevice(local_rank));
-
-    if (!use_managed_memory) {
-      fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
-      exit(-1);
-    }
-
-    size_t buffer_size, free_mem, total_mem;
-    double factor;
-
-    CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
-
-    if (oversub == 1) {
-      factor = OVERSUB_FACTOR_1;
-    } else if (oversub == 2) {
-      factor = OVERSUB_FACTOR_2;
-    } else {
-      fprintf(stderr, "Invalid oversub option: %d\n", oversub);
-      exit(EXIT_FAILURE);
-    }
-
-    switch (gx) {
-    case 256: buffer_size = free_mem - (TO_BYTE(2700)) / factor; break;
-    case 512: buffer_size = free_mem - (TO_BYTE(4100)) / factor; break;
-    case 1024: buffer_size = free_mem - (TO_BYTE(14800)) / factor; break;
-    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
-    }
-
-    CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
-  }
-
   std::array<int, 2> pdims;
   pdims[0] = pr;
   pdims[1] = pc;
@@ -468,6 +436,38 @@ int main(int argc, char** argv) {
   void* data;
   void* work = malloc(work_sz);
   void *data_d, *data2_d, *work_d;
+
+  if (oversub) {
+    CHECK_CUDA_EXIT(cudaSetDevice(local_rank));
+
+    if (!use_managed_memory) {
+      fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
+      exit(-1);
+    }
+
+    size_t buffer_size, free_mem, total_mem;
+    double factor;
+
+    CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
+
+    if (oversub == 1) {
+      factor = OVERSUB_FACTOR_1;
+    } else if (oversub == 2) {
+      factor = OVERSUB_FACTOR_2;
+    } else {
+      fprintf(stderr, "Invalid oversub option: %d\n", oversub);
+      exit(EXIT_FAILURE);
+    }
+
+    switch (gx) {
+    case 256: buffer_size = free_mem - (TO_BYTE(2700)) / factor; break;
+    case 512: buffer_size = free_mem - (TO_BYTE(4100)) / factor; break;
+    case 1024: buffer_size = free_mem - (TO_BYTE(14800)) / factor; break;
+    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
+    }
+
+    CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
+  }
 
   if (use_managed_memory) {
     CHECK_CUDA_EXIT(cudaMallocManaged(&data_d, data_sz));

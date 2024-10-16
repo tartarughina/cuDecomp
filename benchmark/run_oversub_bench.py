@@ -22,7 +22,7 @@ def main():
         for size in grid_sizes:
             for i in range(1, iterations+1):
 
-                command = f"mpirun -n {gpus} ./benchmark_c2c -b 4 -x {size} -y {size} -z {size} --oversub {oversub}"
+                command = f"mpirun -n {gpus} ./benchmark_c2c -b 4 -m -x {size} -y {size} -z {size} --oversub {oversub}"
 
                 result_file = os.path.join(output_dir, f"{get_oversub(oversub)}_gpus_{gpus}_size_{size}_iter_{i}.txt")
 

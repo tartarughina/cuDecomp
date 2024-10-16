@@ -277,8 +277,9 @@ public:
   // Timestepping scheme
   enum TimeScheme { RK1, RK4 };
 
-  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1, bool unified_mem = false, bool um_tuning = false)
-      : N(N), nu(nu), dt(dt), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning){};
+  TGSolver(int N, real_t nu, real_t dt, TimeScheme tscheme = RK1, bool unified_mem = false, bool um_tuning = false,
+           int oversub = 0)
+      : N(N), nu(nu), dt(dt), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning), oversub(oversub){};
   void finalize() {
     // Free memory
     for (int i = 0; i < 3; ++i) {
@@ -298,6 +299,8 @@ public:
     CHECK_CUDECOMP_EXIT(cudecompGridDescDestroy(handle, grid_desc_r));
     CHECK_CUDECOMP_EXIT(cudecompGridDescDestroy(handle, grid_desc_c));
     CHECK_CUDECOMP_EXIT(cudecompFinalize(handle));
+
+    if (oversub) { CHECK_CUDA_EXIT(cudaFree(oversub_ptr)); }
   }
 
   void initialize(MPI_Comm mpi_comm_in = MPI_COMM_WORLD) {
@@ -400,6 +403,36 @@ public:
     int64_t work_sz_decomp = 2 * num_elements_work_c * sizeof(real_t);
     int64_t work_sz_cufft = std::max(std::max(work_sz_r2c_x, std::max(work_sz_c2c_y, work_sz_c2c_z)), work_sz_c2r_x);
     int64_t work_sz = std::max(work_sz_decomp, work_sz_cufft);
+
+    if (oversub) {
+      if (!unified_mem) {
+        fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
+        exit(-1);
+      }
+
+      size_t buffer_size, free_mem, total_mem;
+      double factor;
+
+      CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
+
+      if (oversub == 1) {
+        factor = OVERSUB_FACTOR_1;
+      } else if (oversub == 2) {
+        factor = OVERSUB_FACTOR_2;
+      } else {
+        fprintf(stderr, "Invalid oversub option: %d\n", oversub);
+        exit(EXIT_FAILURE);
+      }
+
+      switch (N) {
+      case 128: buffer_size = free_mem - (TO_BYTE(1600)) / factor; break;
+      case 256: buffer_size = free_mem - (TO_BYTE(3200)) / factor; break;
+      case 512: buffer_size = free_mem - (TO_BYTE(7000)) / factor; break;
+      default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
+      }
+
+      CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
+    }
 
     // Workspace array
     CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz));
@@ -736,6 +769,8 @@ private:
   TimeScheme tscheme;
   bool unified_mem;
   bool um_tuning;
+  int oversub;
+  void* oversub_ptr;
   real_t flowtime = 0;
 
   // MPI variables
@@ -832,7 +867,6 @@ int main(int argc, char** argv) {
   bool unified_mem = false;
   bool um_tuning = false;
   int oversub = 0;
-  void* oversub_ptr = nullptr;
 
   while (1) {
     static struct option long_options[] = {{"N", required_argument, 0, 'n'},
@@ -874,44 +908,8 @@ int main(int argc, char** argv) {
   real_t nu = 0.000625;
   real_t dt = 0.001;
 
-  if (oversub) {
-    int device;
-    MPI_Comm mpi_local_comm;
-    CHECK_MPI_EXIT(MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &mpi_local_comm));
-    CHECK_MPI_EXIT(MPI_Comm_rank(mpi_local_comm, &device));
-    CHECK_CUDA_EXIT(cudaSetDevice(device));
-
-    if (!unified_mem) {
-      fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
-      exit(-1);
-    }
-
-    size_t buffer_size, free_mem, total_mem;
-    double factor;
-
-    CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
-
-    if (oversub == 1) {
-      factor = OVERSUB_FACTOR_1;
-    } else if (oversub == 2) {
-      factor = OVERSUB_FACTOR_2;
-    } else {
-      fprintf(stderr, "Invalid oversub option: %d\n", oversub);
-      exit(EXIT_FAILURE);
-    }
-
-    switch (N) {
-    case 128: buffer_size = free_mem - (TO_BYTE(1600)) / factor; break;
-    case 256: buffer_size = free_mem - (TO_BYTE(3200)) / factor; break;
-    case 512: buffer_size = free_mem - (TO_BYTE(7000)) / factor; break;
-    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
-    }
-
-    CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
-  }
-
   // Construct and initialize solver
-  TGSolver solver(N, nu, dt, TGSolver::TimeScheme::RK4, unified_mem, um_tuning);
+  TGSolver solver(N, nu, dt, TGSolver::TimeScheme::RK4, unified_mem, um_tuning, oversub);
   solver.initialize(MPI_COMM_WORLD);
   solver.print_stats();
 
@@ -950,6 +948,4 @@ int main(int argc, char** argv) {
 
   CHECK_CUDA_EXIT(cudaDeviceSynchronize());
   CHECK_MPI_EXIT(MPI_Finalize());
-
-  if (oversub) { CHECK_CUDA_EXIT(cudaFree(oversub_ptr)); }
 }
