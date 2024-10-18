@@ -404,36 +404,6 @@ public:
     int64_t work_sz_cufft = std::max(std::max(work_sz_r2c_x, std::max(work_sz_c2c_y, work_sz_c2c_z)), work_sz_c2r_x);
     int64_t work_sz = std::max(work_sz_decomp, work_sz_cufft);
 
-    if (oversub) {
-      if (!unified_mem) {
-        fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
-        exit(-1);
-      }
-
-      size_t buffer_size, free_mem, total_mem;
-      double factor;
-
-      CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
-
-      if (oversub == 1) {
-        factor = OVERSUB_FACTOR_1;
-      } else if (oversub == 2) {
-        factor = OVERSUB_FACTOR_2;
-      } else {
-        fprintf(stderr, "Invalid oversub option: %d\n", oversub);
-        exit(EXIT_FAILURE);
-      }
-
-      switch (N) {
-      case 128: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
-      case 256: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
-      case 512: buffer_size = free_mem - (6 * data_sz + work_sz) / factor; break;
-      default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
-      }
-
-      CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
-    }
-
     // Workspace array
     CHECK_CUDECOMP_EXIT(cudecompMalloc(handle, grid_desc_c, &work, work_sz));
     work_r = static_cast<real_t*>(work);
@@ -477,6 +447,7 @@ public:
 
     // Set up CUB arrays
     CHECK_CUDA_EXIT(cudaMallocManaged(&cub_sum, sizeof(real_t)));
+    // the erroneous invokation of cub::DeviceReduce::Sum() is done to obtain a value to be assigned to cub_work_sz
     CHECK_CUDA_EXIT(cub::DeviceReduce::Sum(cub_work, cub_work_sz, U_r[0], cub_sum, pinfo_x_r.size));
     if (unified_mem) {
       CHECK_CUDA_EXIT(cudaMallocManaged(&cub_work, cub_work_sz));
@@ -502,6 +473,33 @@ public:
       rk_a = {1. / 6., 1. / 3., 1. / 3., 1. / 6.};
       rk_b = {0.5, 0.5, 1.};
       break;
+    }
+
+    if (oversub) {
+      if (!unified_mem) {
+        fprintf(stderr, "Oversubscribing GPUs requires unified memory\n");
+        exit(-1);
+      }
+
+      size_t buffer_size, free_mem, total_mem;
+      double factor;
+
+      CHECK_CUDA_EXIT(cudaMemGetInfo(&free_mem, &total_mem));
+
+      if (oversub == 1) {
+        factor = OVERSUB_FACTOR_1;
+      } else if (oversub == 2) {
+        factor = OVERSUB_FACTOR_2;
+      } else {
+        fprintf(stderr, "Invalid oversub option: %d\n", oversub);
+        exit(EXIT_FAILURE);
+      }
+
+      buffer_size = free_mem - (data_sz * (6 + (rk_b.size() * 3) + work_sz +
+                                sizeof(real_t) * (1 + 2 * N + (N / 2) + 1)) /
+                                   factor;
+
+      CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
     }
 
     Uh.resize(rk_b.size());
