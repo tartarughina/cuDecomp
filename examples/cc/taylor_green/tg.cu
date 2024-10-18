@@ -495,11 +495,9 @@ public:
         exit(EXIT_FAILURE);
       }
 
-      buffer_size =
-          free_mem -
-          ((cub_work_sz + static_cast<size_t>(data_sz) * (6 + (rk_b.size() * 3) + static_cast<size_t>(work_sz) +
-                                                          sizeof(real_t) * (1 + 2 * N + ((N / 2) + 1)))) /
-           factor);
+      buffer_size = free_mem - ((cub_work_sz + static_cast<size_t>(data_sz) * (6 + (rk_b.size() * 3)) +
+                                 static_cast<size_t>(work_sz) + sizeof(real_t) * (1 + 2 * N + ((N / 2) + 1))) /
+                                factor);
 
       std::cout << "Free mem: " << free_mem << std::endl;
       std::cout << "Buffer size: " << buffer_size << std::endl;
