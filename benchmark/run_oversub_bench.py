@@ -13,7 +13,7 @@ def get_oversub(oversub: int) -> str:
 def main():
     grid_sizes = [256, 512, 1024]
     iterations = 5
-    output_dir = "bench_log"
+    output_dir = "bench_over_log"
     gpus = 4
 
     os.makedirs(output_dir, exist_ok=True)

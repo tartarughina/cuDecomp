@@ -459,12 +459,10 @@ int main(int argc, char** argv) {
       exit(EXIT_FAILURE);
     }
 
-    switch (gx) {
-    case 256: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
-    case 512: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
-    case 1024: buffer_size = free_mem - (data_sz + work_sz) / factor; break;
-    default: fprintf(stderr, "Unsupported batch size for oversub\n"); exit(-1);
-    }
+    buffer_size = free_mem - ((static_cast<size_t>(data_sz) + static_cast<size_t>(work_sz)) / factor);
+
+    std::cout << "Free mem: " << free_mem << std::endl;
+    std::cout << "Buffer size: " << buffer_size << std::endl;
 
     CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
   }
