@@ -459,7 +459,10 @@ int main(int argc, char** argv) {
       exit(EXIT_FAILURE);
     }
 
-    buffer_size = free_mem - ((static_cast<size_t>(data_sz) + static_cast<size_t>(work_sz)) / factor);
+    // static_cast<size_t>(data_sz) +
+    //  Since the oversub seems to be not effective on this one, just assume work is the size to allocate everything
+    //  else is gonna be overubscribed
+    buffer_size = free_mem - ((static_cast<size_t>(work_sz)) / factor);
 
     std::cout << "Free mem: " << free_mem << std::endl;
     std::cout << "Buffer size: " << buffer_size << std::endl;
