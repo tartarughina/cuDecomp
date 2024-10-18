@@ -497,7 +497,9 @@ public:
 
       buffer_size =
           free_mem -
-          ((data_sz * (6 + (rk_b.size() * 3) + work_sz + sizeof(real_t) * (1 + 2 * N + (N / 2) + 1))) / factor);
+          ((cub_work_sz + static_cast<size_t>(data_sz) * (6 + (rk_b.size() * 3) + static_cast<size_t>(work_sz) +
+                                                          sizeof(real_t) * (1 + 2 * N + ((N / 2) + 1)))) /
+           factor);
 
       printf("To be allocated bytes %f\n", buffer_size);
 
