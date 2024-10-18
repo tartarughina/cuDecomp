@@ -495,8 +495,11 @@ public:
         exit(EXIT_FAILURE);
       }
 
-      buffer_size = free_mem -
-                    (data_sz * (6 + (rk_b.size() * 3) + work_sz + sizeof(real_t) * (1 + 2 * N + (N / 2) + 1))) / factor;
+      buffer_size =
+          free_mem -
+          ((data_sz * (6 + (rk_b.size() * 3) + work_sz + sizeof(real_t) * (1 + 2 * N + (N / 2) + 1))) / factor);
+
+      printf("To be allocated bytes %f\n", buffer_size);
 
       CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
     }
