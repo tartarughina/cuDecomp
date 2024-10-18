@@ -501,7 +501,8 @@ public:
                                                           sizeof(real_t) * (1 + 2 * N + ((N / 2) + 1)))) /
            factor);
 
-      printf("To be allocated bytes %f\n", buffer_size);
+      std::cout << "Free mem: " << free_mem << std::endl;
+      std::cout << "Buffer size: " << buffer_size << std::endl;
 
       CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
     }
