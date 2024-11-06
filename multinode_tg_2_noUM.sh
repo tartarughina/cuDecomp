@@ -36,9 +36,14 @@ NNODES=$(wc -l < $PBS_NODEFILE)
 NTOTRANKS=$(( NNODES * nranks ))
 
 cd /home/tartarughina/cuDecomp/build/examples/cc/taylor_green
-set -x
+
 # Execute 5 times
 for i in {1..5}; do
-    mpiexec --envall --np "${NTOTRANKS}" --ppn "${nranks}" --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 ./tg -n "${size}" > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    # mpiexec --envall --np "${NTOTRANKS}" --ppn "${nranks}" --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 ./tg -n "${size}" > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    cmd="mpiexec --envall --np ${NTOTRANKS} --ppn ${nranks} \
+        --hostfile $PBS_NODEFILE --cpu-bind list:0,8,16,24 \
+        ./tg -n ${size} > ${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+
+        # Echo the command to the terminal
+        echo "$cmd"
 done
-set +x
