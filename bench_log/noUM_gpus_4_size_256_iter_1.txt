@@ -1,0 +1,43 @@
+CUDECOMP: Running transpose autotuning...
+CUDECOMP:	grid: 4 x 1, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 1.128448/1.206272/1.168384/0.019193
+CUDECOMP:	           min/max/avg/std [ms]: 1.128448/1.206272/1.168384/0.019193 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.545792/0.615424/0.575130/0.017327
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.003072/0.004096/0.003840/0.000443
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.003072/0.005120/0.003840/0.000549
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.547840/0.630784/0.585574/0.022848
+CUDECOMP:	grid: 2 x 2, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 2.821120/2.937856/2.880154/0.037073
+CUDECOMP:	           min/max/avg/std [ms]: 2.821120/2.937856/2.880154/0.037073 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.771072/0.826368/0.790886/0.016382
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.606208/0.705536/0.650752/0.029071
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.602112/0.690176/0.640358/0.028780
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.738304/0.869376/0.798157/0.045438
+CUDECOMP:	grid: 1 x 4, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 0.869376/0.908288/0.892774/0.008864
+CUDECOMP:	           min/max/avg/std [ms]: 0.869376/0.908288/0.892774/0.008864 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.003072/0.004096/0.003635/0.000509
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.429056/0.454656/0.440269/0.006233
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.419840/0.461824/0.445235/0.011155
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.003072/0.004096/0.003635/0.000509
+CUDECOMP: SELECTED: grid: 1 x 4, backend: NCCL, Avg. time (weighted) [ms]: 0.892774
+CUDECOMP: transpose autotuning time [s]: 0.199300
+Running on 1 x 4 process grid...
+Running on 256 x 256 x 256 (complex) spatial grid...
+Running with NCCL backend...
+Result Summary:
+	 FFT size: 256 x 256 x 256  
+	 FFT mode: C2C 
+	 Precision: double 
+	 Process grid: 1 x 4 
+	 Comm backend: NCCL 
+	 Axis contiguous: 0 0 0 
+	 Out of place: false 
+	 Managed memory: false 
+	 Managed memory tuning: false 
+	 Init time min/max/avg/std [s]: 14.083931/14.118829/14.101581/42.304742 
+	 Forward/Backward time stats
+	 Time min/max/avg/std [ms]: 0.763358/0.783436/0.772803/0.007388 
+	 Throughput min/max/avg/std [GFLOPS/s]: 2569.789900/2637.381045/2605.386250/24.905979 
+	 Max error: 5.8078541976e-15 
+	 Memory usage range (per GPU) [MB]: 2676.000000 - 2820.000000 

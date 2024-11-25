@@ -1,0 +1,47 @@
+running on 256 x 256 x 256 spatial grid...
+CUDECOMP: Running transpose autotuning...
+CUDECOMP:	grid: 4 x 1, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 0.759808/0.805888/0.781619/0.012437
+CUDECOMP:	           min/max/avg/std [ms]: 0.759808/0.805888/0.781619/0.012437 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.297984/0.326656/0.310835/0.007902
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.055296/0.060416/0.057446/0.001445
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.055296/0.060416/0.057242/0.001408
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.335872/0.380928/0.356096/0.010557
+CUDECOMP:	grid: 2 x 2, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 1.666048/1.777664/1.719654/0.031978
+CUDECOMP:	           min/max/avg/std [ms]: 1.666048/1.777664/1.719654/0.031978 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.411648/0.440320/0.425267/0.008744
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.372736/0.446464/0.411034/0.023289
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.365568/0.463872/0.410931/0.034486
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.425984/0.536576/0.472422/0.039980
+CUDECOMP:	grid: 1 x 4, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 0.732160/0.766976/0.754995/0.011872
+CUDECOMP:	           min/max/avg/std [ms]: 0.732160/0.766976/0.754995/0.011872 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.051200/0.054272/0.052582/0.000873
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.299008/0.308224/0.304230/0.002688
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.302080/0.313344/0.306637/0.003147
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.077824/0.097280/0.091546/0.007590
+CUDECOMP: SELECTED: grid: 1 x 4, backend: NCCL, Avg. time (weighted) [ms]: 0.754995
+CUDECOMP: transpose autotuning time [s]: 0.199700
+flow time: 0.00000  ke: 0.12500000000000  enstrophy: 0.37500000000000
+Average iteration time: 26.010477 ms
+flow time: 0.10000  ke: 0.12495311751674  enstrophy: 0.37524993111414
+Average iteration time: 25.670148 ms
+flow time: 0.20000  ke: 0.12490615489867  enstrophy: 0.37628294023418
+Average iteration time: 25.626950 ms
+flow time: 0.30000  ke: 0.12485901382313  enstrophy: 0.37810718021190
+Average iteration time: 25.918529 ms
+flow time: 0.40000  ke: 0.12481159452340  enstrophy: 0.38073756104506
+Average iteration time: 25.887297 ms
+flow time: 0.50000  ke: 0.12476379496139  enstrophy: 0.38419546162541
+Average iteration time: 25.948930 ms
+flow time: 0.60000  ke: 0.12471551003987  enstrophy: 0.38850838946078
+Average iteration time: 25.895499 ms
+flow time: 0.70000  ke: 0.12466663085906  enstrophy: 0.39370961661544
+Average iteration time: 25.817803 ms
+flow time: 0.80000  ke: 0.12461704401873  enstrophy: 0.39983782036701
+Average iteration time: 25.894339 ms
+flow time: 0.90000  ke: 0.12456663096357  enstrophy: 0.40693675329496
+Average iteration time: 25.906987 ms
+flow time: 1.00000  ke: 0.12451526736698  enstrophy: 0.41505496036902
+Simulation time: 25.886505 s

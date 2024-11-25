@@ -1,0 +1,66 @@
+Free mem: 40314667008
+Buffer size: 39956753066
+Free mem: 40255946752
+Buffer size: 39898032810
+Free mem: 40230780928
+Buffer size: 39872866986
+Free mem: 40314667008
+Buffer size: 39956753066
+Free mem: 40230780928
+Buffer size: 39872866986
+CUDECOMP: Running transpose autotuning...
+CUDECOMP:	grid: 8 x 1, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 67.516418/143.738892/104.834122/16.716227
+CUDECOMP:	           min/max/avg/std [ms]: 67.516418/143.738876/104.834122/16.716227 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 24.397823/75.037697/48.025551/13.753823
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 0.002048/0.004096/0.002995/0.000421
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 0.002048/0.004096/0.003046/0.000279
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 27.747328/90.063873/56.802536/14.934853
+CUDECOMP:	grid: 4 x 2, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 78.617599/172.155899/131.734192/28.458586
+CUDECOMP:	           min/max/avg/std [ms]: 78.617599/172.155899/131.734192/28.458586 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 19.428352/92.087296/45.705704/18.652735
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 2.345984/62.957569/14.540902/18.087971
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 2.312192/2.387968/2.339558/0.021018
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 25.595903/121.233406/69.148033/22.326204
+CUDECOMP:	grid: 2 x 4, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 62.491646/202.112000/118.964043/34.038105
+CUDECOMP:	           min/max/avg/std [ms]: 62.491646/202.112000/118.964043/34.038105 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 17.370111/82.088959/41.168411/17.662659
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 1.455104/54.978561/23.703577/19.424963
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 1.460224/1.690624/1.556634/0.048943
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 9.005056/123.698174/52.535423/29.976305
+CUDECOMP:	grid: 1 x 8, backend: NCCL 
+CUDECOMP:	Total time min/max/avg/std [ms]: 69.039101/157.847549/116.561073/22.612019
+CUDECOMP:	           min/max/avg/std [ms]: 69.039101/157.847549/116.561073/22.612020 (weighted)
+CUDECOMP:	TransposeXY time min/max/avg/std [ms]: 0.003072/0.018432/0.005760/0.003957
+CUDECOMP:	TransposeYZ time min/max/avg/std [ms]: 20.858879/80.787453/53.361485/17.531296
+CUDECOMP:	TransposeZY time min/max/avg/std [ms]: 22.682625/102.222847/63.190781/16.878202
+CUDECOMP:	TransposeYX time min/max/avg/std [ms]: 0.002048/0.004096/0.003046/0.000279
+CUDECOMP: SELECTED: grid: 8 x 1, backend: NCCL, Avg. time (weighted) [ms]: 104.834122
+CUDECOMP: transpose autotuning time [s]: 6.202133
+Running on 8 x 1 process grid...
+Running on 512 x 512 x 512 (complex) spatial grid...
+Running with NCCL backend...
+Free mem: 40381775872
+Buffer size: 40023861930
+Free mem: 40255946752
+Buffer size: 39898032810
+Free mem: 40381775872
+Buffer size: 40023861930
+Result Summary:
+	 FFT size: 512 x 512 x 512  
+	 FFT mode: C2C 
+	 Precision: double 
+	 Process grid: 8 x 1 
+	 Comm backend: NCCL 
+	 Axis contiguous: 0 0 0 
+	 Out of place: false 
+	 Managed memory: true 
+	 Managed memory tuning: false 
+	 Init time min/max/avg/std [s]: 29.595687/31.224362/30.269737/0.551089 
+	 Forward/Backward time stats
+	 Time min/max/avg/std [ms]: 475.551903/496.868368/483.485371/6.981579 
+	 Throughput min/max/avg/std [GFLOPS/s]: 36.467190/38.101821/37.484328/0.534455 
+	 Max error: 6.9510369682e-15 
+	 Memory usage range (per GPU) [MB]: 40338.000000 - 40338.000000 
