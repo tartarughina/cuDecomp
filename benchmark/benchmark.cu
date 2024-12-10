@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
     case '3': axis_contiguous[2] = atoi(optarg); break;
     case 'w': nwarmup = atoi(optarg); break;
     case 't': ntrials = atoi(optarg); break;
-    case 'k': skip_threshold = atoi(optarg); break;
+    case 'k': skip_threshold = atof(optarg); break;
     case 'b': comm_backend = static_cast<cudecompTransposeCommBackend_t>(atoi(optarg)); break;
     case 'o': out_of_place = true; break;
     case 'm': use_managed_memory = true; break;
@@ -650,7 +650,7 @@ int main(int argc, char** argv) {
 
     // Note: excluding scaling from timing
 #ifdef R2C
-    scale<<<(pinfo_x_r.size + 1024 - 1) / 1024, 1024>>>(output_r, 1.0 / (gx * gy * gz), pinfo_x_r);
+    scale<<<(pinfo_x_r.size + 1024 - 1) / 1024, 1024>>>(output_r, 1.0 / fftsize, pinfo_x_r);
     if (out_of_place) std::swap(input, output);
     if (out_of_place) std::swap(input_r, output_r);
 #else
