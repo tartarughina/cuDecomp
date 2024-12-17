@@ -35,6 +35,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 #include <getopt.h>
@@ -326,9 +327,9 @@ public:
   enum TimeScheme { RK1, RK4 };
 
   TGSolver(int64_t N, real_t nu, real_t dt, real_t cfl, TimeScheme tscheme = RK1, bool unified_mem = false,
-           bool um_tuning = false, int oversub = 0)
+           bool um_tuning = false, int oversub = 0, bool skip = false)
       : N(N), nu(nu), dt(dt), cfl(cfl), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning),
-        oversub(oversub){};
+        oversub(oversub), skip(skip){};
 
   void finalize() {
     // Free memory
@@ -383,11 +384,35 @@ public:
     config.transpose_axis_contiguous[1] = true;
     config.transpose_axis_contiguous[2] = true;
 
+    // Consider to disable autotuning for multinode runs
+    // Provide the type of grid as N_RANK x 1 by default
     cudecompGridDescAutotuneOptions_t options;
-    cudecompGridDescAutotuneOptionsSetDefaults(&options);
-    options.dtype = get_cudecomp_datatype(complex_t(0));
-    // The backend autotuning is disabled otherwise NCCL may be replaced
-    options.autotune_transpose_backend = false;
+
+    if (!skip) {
+      cudecompGridDescAutotuneOptionsSetDefaults(&options);
+      options.dtype = get_cudecomp_datatype(complex_t(0));
+      // The backend autotuning is disabled otherwise NCCL may be replaced
+      options.autotune_transpose_backend = false;
+    } else {
+      options = nullptr;
+
+      // Set the process grid as the one used for C2C
+      switch (nranks) {
+      case 8:
+        config.pdims[0] = 8;
+        config.pdims[1] = 1;
+        break;
+      case 16:
+        config.pdims[0] = 8;
+        config.pdims[1] = 2;
+        break;
+      case 32:
+        config.pdims[0] = 8;
+        config.pdims[1] = 4;
+        break;
+      }
+    }
+    // ---------------------------------------------------------------
 
     std::array<int, 3> gdim_c{(int)N / 2 + 1, (int)N, (int)N};
     config.gdims[0] = gdim_c[0];
@@ -894,6 +919,7 @@ private:
   TimeScheme tscheme;
   bool unified_mem;
   bool um_tuning;
+  bool skip;
   int oversub;
   void* oversub_ptr;
   real_t flowtime_ = 0;
@@ -983,10 +1009,12 @@ static void usage(const char* pname) {
       "\t\tCFL value to use for timestepping, overrides fixed timestep setting. (default: 0.0, use fixed timestep) \n",
       "\t-u|--unified_mem\n"
       "\t\tUse unified memory for data arrays. (default: false) \n"
-      "\t-t|--um_tuning\n"
+      "\t-g|--um_tuning\n"
       "\t\tEnable unified memory tuning. (default: false) \n"
       "\t-s|--oversub\n"
       "\t\tOversubscribe unified memory. (default: 0 options: 1->1.5x 2->2x) \n"
+      "\t-k|--skip\n"
+      "\t\tSkip the autotuning phase setting the grid to N_RANKS x 1 (default: false) \n"
       "\t-h|--help\n"
       "\t\tPrint this message and exit.\n",
       bname);
@@ -1010,6 +1038,7 @@ int main(int argc, char** argv) {
   bool unified_mem = false;
   bool um_tuning = false;
   int oversub = 0;
+  bool skip = false;
 
   std::string logfile;
 
@@ -1029,6 +1058,7 @@ int main(int argc, char** argv) {
                                            {"unified_mem", no_argument, 0, 'u'},
                                            {"um_tuning", no_argument, 0, 'g'},
                                            {"oversub", required_argument, 0, 's'},
+                                           {"skip", no_argument, 0, 'k'},
                                            {"nu", required_argument, 0, 'v'},
                                            {"dt", required_argument, 0, 't'},
                                            {"cfl", required_argument, 0, 'c'},
@@ -1037,7 +1067,7 @@ int main(int argc, char** argv) {
 
     int option_index = 0;
 
-    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:o:v:t:c:ugs:h", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:o:v:t:c:ugsk:h", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -1058,6 +1088,7 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
       }
       break;
+    case 'k': skip = true; break;
     case 'v': nu = atof(optarg); break;
     case 't': dt = atof(optarg); break;
     case 'c': cfl = atof(optarg); break;
@@ -1068,7 +1099,7 @@ int main(int argc, char** argv) {
   }
 
   // Construct and initialize solver
-  TGSolver solver(N, nu, dt, cfl, TGSolver::TimeScheme::RK4, unified_mem, um_tuning, oversub);
+  TGSolver solver(N, nu, dt, cfl, TGSolver::TimeScheme::RK4, unified_mem, um_tuning, oversub, skip);
 
   solver.initialize(MPI_COMM_WORLD);
 
