@@ -393,10 +393,12 @@ public:
       options.dtype = get_cudecomp_datatype(complex_t(0));
       // The backend autotuning is disabled otherwise NCCL may be replaced
       options.autotune_transpose_backend = false;
+      options.skip_threshold = 0.0;
     } else {
       options = nullptr;
 
       // Set the process grid as the one used for C2C
+      // As for now limited to 8 nodes as the one tested on debug_scale
       switch (nranks) {
       case 8:
         config.pdims[0] = 8;

@@ -567,6 +567,7 @@ int main(int argc, char** argv) {
   double ts = 0;
   for (int trial = 0; trial < nwarmup + ntrials; ++trial) {
     if (trial == nwarmup) {
+      std::cout << "# Warmup done" << std::endl;
       CHECK_CUDA_EXIT(cudaDeviceSynchronize());
       CHECK_MPI_EXIT(MPI_Barrier(MPI_COMM_WORLD));
       ts = MPI_Wtime();
@@ -647,14 +648,14 @@ int main(int argc, char** argv) {
       double te = MPI_Wtime();
       trial_times[trial - nwarmup] = (te - ts) / 2; // division by two for fwd or bwd only time
     }
-
+    std::cout << "# Trial done"
     // Note: excluding scaling from timing
 #ifdef R2C
-    scale<<<(pinfo_x_r.size + 1024 - 1) / 1024, 1024>>>(output_r, 1.0 / fftsize, pinfo_x_r);
+        scale<<<(pinfo_x_r.size + 1024 - 1) / 1024, 1024>>>(output_r, 1.0 / fftsize, pinfo_x_r);
     if (out_of_place) std::swap(input, output);
     if (out_of_place) std::swap(input_r, output_r);
 #else
-    scale<<<(pinfo_x_c.size + 1024 - 1) / 1024, 1024>>>(output, 1.0 / fftsize, pinfo_x_c);
+        scale<<<(pinfo_x_c.size + 1024 - 1) / 1024, 1024>>>(output, 1.0 / fftsize, pinfo_x_c);
     if (out_of_place) std::swap(input, output);
 #endif
 
