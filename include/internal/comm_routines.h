@@ -31,6 +31,7 @@
 #ifndef COMM_ROUTINES_H
 #define COMM_ROUTINES_H
 
+#include <numeric>
 #include <vector>
 
 #include <cuda_runtime.h>
@@ -165,6 +166,7 @@ cudecompAlltoall(const cudecompHandle_t& handle, const cudecompGridDesc_t& grid_
     // For fully intranode alltoall, use distinct NCCL local comm instead of global comm as it is faster.
     auto comm = (comm_info.nnodes == 1) ? handle->nccl_local_comm : handle->nccl_comm;
 
+    double start = MPI_Wtime();
     CHECK_NCCL(ncclGroupStart());
     for (int i = 0; i < send_counts.size(); ++i) {
       int peer_rank_global = getGlobalRank(grid_desc, comm_axis, i);
@@ -179,6 +181,10 @@ cudecompAlltoall(const cudecompHandle_t& handle, const cudecompGridDesc_t& grid_
       }
     }
     CHECK_NCCL(ncclGroupEnd());
+    double end = MPI_Wtime();
+    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+              << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_TRANSPOSE_COMM_MPI_P2P: {
@@ -352,6 +358,7 @@ static void cudecompAlltoallPipelined(const cudecompHandle_t& handle, const cude
       int src_rank = src_ranks[i];
       int dst_rank = dst_ranks[i];
 
+      double start = MPI_Wtime();
       if (src_rank == self_rank) {
         // Self-copy with cudaMemcpy
         CHECK_CUDA(cudaMemcpyAsync(recv_buff + recv_offsets[self_rank], send_buff + send_offsets[self_rank],
@@ -390,6 +397,11 @@ static void cudecompAlltoallPipelined(const cudecompHandle_t& handle, const cude
         CHECK_CUDA(cudaStreamWaitEvent(stream, grid_desc->events[dst_rank], 0));
       }
     }
+
+    double end = MPI_Wtime();
+    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+              << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_TRANSPOSE_COMM_MPI_P2P_PL: {
@@ -489,6 +501,7 @@ static void cudecompSendRecvPair(const cudecompHandle_t& handle, const cudecompG
   }
   case CUDECOMP_HALO_COMM_NCCL: {
     auto comm = handle->nccl_comm;
+    double start = MPI_Wtime();
     CHECK_NCCL(ncclGroupStart());
     for (int i = 0; i < send_counts.size(); ++i) {
       if (peer_ranks[i] == handle->rank) {
@@ -507,6 +520,10 @@ static void cudecompSendRecvPair(const cudecompHandle_t& handle, const cudecompG
       }
     }
     CHECK_NCCL(ncclGroupEnd());
+    double end = MPI_Wtime();
+    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+              << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_HALO_COMM_MPI: {
