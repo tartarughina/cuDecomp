@@ -181,10 +181,13 @@ cudecompAlltoall(const cudecompHandle_t& handle, const cudecompGridDesc_t& grid_
       }
     }
     CHECK_NCCL(ncclGroupEnd());
+
+    CHECK_CUDA(cudaStreamSynchronize(stream));
     double end = MPI_Wtime();
-    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
-              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
-              << " B in seconds: " << end - start << std::endl;
+    if (peer_rank_global == 0)
+      std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+                << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+                << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_TRANSPOSE_COMM_MPI_P2P: {
@@ -398,10 +401,12 @@ static void cudecompAlltoallPipelined(const cudecompHandle_t& handle, const cude
       }
     }
 
+    CHECK_CUDA(cudaStreamSynchronize(pl_stream));
     double end = MPI_Wtime();
-    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
-              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
-              << " B in seconds: " << end - start << std::endl;
+    if (peer_rank_global == 0)
+      std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+                << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+                << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_TRANSPOSE_COMM_MPI_P2P_PL: {
@@ -520,10 +525,13 @@ static void cudecompSendRecvPair(const cudecompHandle_t& handle, const cudecompG
       }
     }
     CHECK_NCCL(ncclGroupEnd());
+
+    CHECK_CUDA(cudaStreamSynchronize(stream));
     double end = MPI_Wtime();
-    std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
-              << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
-              << " B in seconds: " << end - start << std::endl;
+    if (peer_rank_global == 0)
+      std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
+                << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
+                << " B in seconds: " << end - start << std::endl;
     break;
   }
   case CUDECOMP_HALO_COMM_MPI: {
