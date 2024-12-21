@@ -359,11 +359,12 @@ static void cudecompAlltoallPipelined(const cudecompHandle_t& handle, const cude
     int self_rank = comm_info.rank;
 
     bool group_started = false;
+    double start = MPI_Wtime();
+
     for (int i = 0; i < src_ranks.size(); ++i) {
       int src_rank = src_ranks[i];
       int dst_rank = dst_ranks[i];
 
-      double start = MPI_Wtime();
       if (src_rank == self_rank) {
         // Self-copy with cudaMemcpy
         CHECK_CUDA(cudaMemcpyAsync(recv_buff + recv_offsets[self_rank], send_buff + send_offsets[self_rank],
