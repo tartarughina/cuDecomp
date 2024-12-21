@@ -1058,19 +1058,20 @@ int main(int argc, char** argv) {
                                            {"specfreq", required_argument, 0, 's'},
                                            {"logfile", required_argument, 0, 'l'},
                                            // {"csvfile", required_argument, 0, 'o'},
+                                           // the unused option have been deleted
                                            {"unified_mem", no_argument, 0, 'u'},
-                                           {"um_tuning", no_argument, 0, 'g'},
+                                           {"um_tuning", no_argument, 0, 't'},
                                            {"oversub", required_argument, 0, 'o'},
                                            {"skip", no_argument, 0, 'k'},
-                                           {"nu", required_argument, 0, 'v'},
-                                           {"dt", required_argument, 0, 't'},
+                                           // {"nu", required_argument, 0, 'v'},
+                                           // {"dt", required_argument, 0, 't'},
                                            {"cfl", required_argument, 0, 'c'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
 
-    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:v:t:c:ugok:h", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:v:c:utokh", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -1083,7 +1084,7 @@ int main(int argc, char** argv) {
     case 'l': logfile = std::string(optarg); break;
     // case 'o': csvfile = std::string(optarg); break;
     case 'u': unified_mem = true; break;
-    case 'g': um_tuning = true; break;
+    case 't': um_tuning = true; break;
     case 'o':
       oversub = atoi(optarg);
       if (oversub != 1 && oversub != 2) {
@@ -1092,9 +1093,9 @@ int main(int argc, char** argv) {
       }
       break;
     case 'k': skip = true; break;
-    case 'v': nu = atof(optarg); break;
-    case 't': dt = atof(optarg); break;
-    case 'c': cfl = atof(optarg); break;
+    // case 'v': nu = atof(optarg); break;
+    // case 't': dt = atof(optarg); break;
+    // case 'c': cfl = atof(optarg); break;
     case 'h': usage(argv[0]); break;
     case '?': exit(EXIT_FAILURE);
     default: fprintf(stderr, "unknown option: %c\n", ch); exit(EXIT_FAILURE);
