@@ -184,7 +184,9 @@ cudecompAlltoall(const cudecompHandle_t& handle, const cudecompGridDesc_t& grid_
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
     double end = MPI_Wtime();
-    if (peer_rank_global == 0)
+    int p_rank;
+    CHECK_MPI(MPI_Comm_rank(MPI_COMM_WORLD, &p_rank));
+    if (p_rank == 0)
       std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
                 << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
                 << " B in seconds: " << end - start << std::endl;
@@ -403,7 +405,9 @@ static void cudecompAlltoallPipelined(const cudecompHandle_t& handle, const cude
 
     CHECK_CUDA(cudaStreamSynchronize(pl_stream));
     double end = MPI_Wtime();
-    if (peer_rank_global == 0)
+    int p_rank;
+    CHECK_MPI(MPI_Comm_rank(MPI_COMM_WORLD, &p_rank));
+    if (p_rank == 0)
       std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
                 << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
                 << " B in seconds: " << end - start << std::endl;
@@ -528,7 +532,9 @@ static void cudecompSendRecvPair(const cudecompHandle_t& handle, const cudecompG
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
     double end = MPI_Wtime();
-    if (peer_rank_global == 0)
+    int p_rank;
+    CHECK_MPI(MPI_Comm_rank(MPI_COMM_WORLD, &p_rank));
+    if (p_rank == 0)
       std::cout << "# AlltoAll sent: " << std::accumulate(send_counts.begin(), send_counts.end(), 0) * sizeof(T)
                 << " B recv: " << std::accumulate(recv_counts.begin(), recv_counts.end(), 0) * sizeof(T)
                 << " B in seconds: " << end - start << std::endl;
