@@ -42,6 +42,6 @@ for i in {1..5}; do
     # mpiexec --envall --np "${NTOTRANKS}" --ppn "${nranks}" --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 ./tg -n "${size}" > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
     mpiexec --envall --np ${NTOTRANKS} --ppn ${nranks} \
         --hostfile $PBS_NODEFILE --cpu-bind list:0,8,16,24 \
-        ./tg -n ${size} > ${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt
+        ./tg -n ${size} -k > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 
 done
