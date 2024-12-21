@@ -1056,10 +1056,10 @@ int main(int argc, char** argv) {
                                            {"printfreq", required_argument, 0, 'p'},
                                            {"specfreq", required_argument, 0, 's'},
                                            {"logfile", required_argument, 0, 'l'},
-                                           {"csvfile", required_argument, 0, 'o'},
+                                           // {"csvfile", required_argument, 0, 'o'},
                                            {"unified_mem", no_argument, 0, 'u'},
                                            {"um_tuning", no_argument, 0, 'g'},
-                                           {"oversub", required_argument, 0, 's'},
+                                           {"oversub", required_argument, 0, 'o'},
                                            {"skip", no_argument, 0, 'k'},
                                            {"nu", required_argument, 0, 'v'},
                                            {"dt", required_argument, 0, 't'},
@@ -1069,7 +1069,7 @@ int main(int argc, char** argv) {
 
     int option_index = 0;
 
-    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:o:v:t:c:ugsk:h", long_options, &option_index);
+    int ch = getopt_long(argc, argv, "n:i:m:p:s:l:v:t:c:ugok:h", long_options, &option_index);
     if (ch == -1) break;
 
     switch (ch) {
@@ -1080,7 +1080,7 @@ int main(int argc, char** argv) {
     case 'p': printfreq = atoi(optarg); break;
     case 's': specfreq = atof(optarg); break;
     case 'l': logfile = std::string(optarg); break;
-    case 'o': csvfile = std::string(optarg); break;
+    // case 'o': csvfile = std::string(optarg); break;
     case 'u': unified_mem = true; break;
     case 'g': um_tuning = true; break;
     case 's':
