@@ -328,7 +328,7 @@ public:
 
   TGSolver(int64_t N, real_t nu, real_t dt, real_t cfl, TimeScheme tscheme = RK1, bool unified_mem = false,
            bool um_tuning = false, int oversub = 0, bool skip = false)
-      : N(N), nu(nu), dt(dt), cfl(cfl), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning),
+      : N(N), nu(nu), dt_(dt), cfl(cfl), tscheme(tscheme), unified_mem(unified_mem), um_tuning(um_tuning),
         oversub(oversub), skip(skip){};
 
   void finalize() {
@@ -384,6 +384,11 @@ public:
     config.transpose_axis_contiguous[1] = true;
     config.transpose_axis_contiguous[2] = true;
 
+    std::array<int, 3> gdim_c{(int)N / 2 + 1, (int)N, (int)N};
+    config.gdims[0] = gdim_c[0];
+    config.gdims[1] = gdim_c[1];
+    config.gdims[2] = gdim_c[2];
+
     // Consider to disable autotuning for multinode runs
     // Provide the type of grid as N_RANK x 1 by default
     cudecompGridDescAutotuneOptions_t options;
@@ -394,6 +399,8 @@ public:
       // The backend autotuning is disabled otherwise NCCL may be replaced
       options.autotune_transpose_backend = false;
       options.skip_threshold = 0.0;
+
+      cudecompGridDescCreate(handle, &grid_desc_c, &config, &options);
     } else {
       options = nullptr;
 
@@ -413,14 +420,10 @@ public:
         config.pdims[1] = 4;
         break;
       }
+
+      cudecompGridDescCreate(handle, &grid_desc_c, &config, nullptr);
     }
     // ---------------------------------------------------------------
-
-    std::array<int, 3> gdim_c{(int)N / 2 + 1, (int)N, (int)N};
-    config.gdims[0] = gdim_c[0];
-    config.gdims[1] = gdim_c[1];
-    config.gdims[2] = gdim_c[2];
-    cudecompGridDescCreate(handle, &grid_desc_c, &config, &options);
 
     std::array<int, 3> gdim_r{((int)N / 2 + 1) * 2, (int)N, (int)N}; // with padding for in-place operation
     config.gdims[0] = gdim_r[0];
@@ -1083,7 +1086,7 @@ int main(int argc, char** argv) {
     // case 'o': csvfile = std::string(optarg); break;
     case 'u': unified_mem = true; break;
     case 'g': um_tuning = true; break;
-    case 's':
+    case 'o':
       oversub = atoi(optarg);
       if (oversub != 1 && oversub != 2) {
         fprintf(stderr, "oversub must be 1 or 2\n");
