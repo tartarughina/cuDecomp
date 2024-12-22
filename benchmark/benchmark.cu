@@ -278,7 +278,15 @@ int main(int argc, char** argv) {
   config.gdims[0] = gdim_c[0];
   config.gdims[1] = gdim_c[1];
   config.gdims[2] = gdim_c[2];
-  CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, &options));
+
+  if (skip) {
+    config.pdims[0] = nranks;
+    config.pdims[1] = 1;
+
+    CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, nullptr));
+  } else {
+    CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, &options));
+  }
 #endif
 
   if (rank == 0) printf("Running on %d x %d process grid...\n", config.pdims[0], config.pdims[1]);
