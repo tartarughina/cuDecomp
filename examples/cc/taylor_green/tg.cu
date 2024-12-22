@@ -402,22 +402,10 @@ public:
 
       cudecompGridDescCreate(handle, &grid_desc_c, &config, &options);
     } else {
-      // Set the process grid as the one used for C2C
-      // As for now limited to 8 nodes as the one tested on debug_scale
-      switch (nranks) {
-      case 8:
-        config.pdims[0] = 8;
-        config.pdims[1] = 1;
-        break;
-      case 16:
-        config.pdims[0] = 8;
-        config.pdims[1] = 2;
-        break;
-      case 32:
-        config.pdims[0] = 8;
-        config.pdims[1] = 4;
-        break;
-      }
+      // Without tuning set the dimension to be N_RANK x 1
+
+      config.pdims[0] = nranks;
+      config.pdims[1] = 1;
 
       cudecompGridDescCreate(handle, &grid_desc_c, &config, nullptr);
     }
@@ -493,36 +481,6 @@ public:
     CHECK_CUFFT_EXIT(cufftSetWorkArea(cufft_plan_c2c_z, work));
     CHECK_CUFFT_EXIT(cufftSetWorkArea(cufft_plan_c2r_x, work));
 
-    // Data arrays
-    for (int i = 0; i < 3; ++i) {
-
-      if (unified_mem) {
-        CHECK_CUDA_EXIT(cudaMallocManaged(&U[i], data_sz));
-        CHECK_CUDA_EXIT(cudaMallocManaged(&dU[i], data_sz));
-        if (um_tuning) {
-          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
-          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
-          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
-
-          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
-          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
-          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
-        }
-        U_cpu[i] = U[i];
-      } else {
-        CHECK_CUDA_EXIT(cudaMalloc(&U[i], data_sz));
-        CHECK_CUDA_EXIT(cudaMalloc(&dU[i], data_sz));
-        U_cpu[i] = malloc(data_sz);
-      }
-
-      U_r[i] = static_cast<real_t*>(U[i]);
-      U_c[i] = static_cast<complex_t*>(U[i]);
-      dU_r[i] = static_cast<real_t*>(dU[i]);
-      dU_c[i] = static_cast<complex_t*>(dU[i]);
-      U_cpu_r[i] = static_cast<real_t*>(U_cpu[i]);
-      U_cpu_c[i] = static_cast<complex_t*>(U_cpu[i]);
-    }
-
     // Set up CUB arrays
     CHECK_CUDA_EXIT(cudaMallocManaged(&cub_sum, sizeof(real_t)));
 
@@ -586,6 +544,36 @@ public:
       std::cout << "Buffer size: " << buffer_size << std::endl;
 
       CHECK_CUDA_EXIT(cudaMalloc((void**)&oversub_ptr, buffer_size));
+    }
+
+    // Data arrays
+    for (int i = 0; i < 3; ++i) {
+
+      if (unified_mem) {
+        CHECK_CUDA_EXIT(cudaMallocManaged(&U[i], data_sz));
+        CHECK_CUDA_EXIT(cudaMallocManaged(&dU[i], data_sz));
+        if (um_tuning) {
+          CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+          // CHECK_CUDA_EXIT(cudaMemAdvise(dU[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetPreferredLocation, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, local_rank));
+          CHECK_CUDA_EXIT(cudaMemAdvise(U[i], data_sz, cudaMemAdviseSetAccessedBy, -1));
+        }
+        U_cpu[i] = U[i];
+      } else {
+        CHECK_CUDA_EXIT(cudaMalloc(&U[i], data_sz));
+        CHECK_CUDA_EXIT(cudaMalloc(&dU[i], data_sz));
+        U_cpu[i] = malloc(data_sz);
+      }
+
+      U_r[i] = static_cast<real_t*>(U[i]);
+      U_c[i] = static_cast<complex_t*>(U[i]);
+      dU_r[i] = static_cast<real_t*>(dU[i]);
+      dU_c[i] = static_cast<complex_t*>(dU[i]);
+      U_cpu_r[i] = static_cast<real_t*>(U_cpu[i]);
+      U_cpu_c[i] = static_cast<complex_t*>(U_cpu[i]);
     }
 
     Uh.resize(rk_b.size());
@@ -1058,14 +1046,14 @@ int main(int argc, char** argv) {
                                            {"specfreq", required_argument, 0, 's'},
                                            {"logfile", required_argument, 0, 'l'},
                                            // {"csvfile", required_argument, 0, 'o'},
-                                           // the unused option have been deleted
+                                           // the unused options have been commeneted out
                                            {"unified_mem", no_argument, 0, 'u'},
                                            {"um_tuning", no_argument, 0, 't'},
                                            {"oversub", required_argument, 0, 'o'},
                                            {"skip", no_argument, 0, 'k'},
                                            // {"nu", required_argument, 0, 'v'},
                                            // {"dt", required_argument, 0, 't'},
-                                           {"cfl", required_argument, 0, 'c'},
+                                           // {"cfl", required_argument, 0, 'c'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 

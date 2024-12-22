@@ -163,29 +163,22 @@ int main(int argc, char** argv) {
   int ntrials = 5;
   bool skip_correctness_tests = false;
   double skip_threshold = 0.0;
+  bool skip = false;
   int oversub = 0;
   void* oversub_ptr = nullptr;
 
   while (1) {
-    static struct option long_options[] = {{"gx", required_argument, 0, 'x'},
-                                           {"gy", required_argument, 0, 'y'},
-                                           {"gz", required_argument, 0, 'z'},
-                                           {"backend", required_argument, 0, 'b'},
-                                           {"pr", required_argument, 0, 'r'},
-                                           {"pc", required_argument, 0, 'c'},
-                                           {"acx", required_argument, 0, '1'},
-                                           {"acy", required_argument, 0, '2'},
-                                           {"acz", required_argument, 0, '3'},
-                                           {"nwarmup", required_argument, 0, 'w'},
-                                           {"ntrials", required_argument, 0, 't'},
-                                           {"skip-threshold", required_argument, 0, 'k'},
-                                           {"out-of-place", no_argument, 0, 'o'},
-                                           {"use-managed-memory", no_argument, 0, 'm'},
-                                           {"tuning", no_argument, 0, 'u'},
-                                           {"skip-correctness-tests", no_argument, 0, 's'},
-                                           {"help", no_argument, 0, 'h'},
-                                           {"oversub", required_argument, 0, 'v'},
-                                           {0, 0, 0, 0}};
+    static struct option long_options[] = {
+        {"gx", required_argument, 0, 'x'},      {"gy", required_argument, 0, 'y'},
+        {"gz", required_argument, 0, 'z'},      {"backend", required_argument, 0, 'b'},
+        {"pr", required_argument, 0, 'r'},      {"pc", required_argument, 0, 'c'},
+        {"acx", required_argument, 0, '1'},     {"acy", required_argument, 0, '2'},
+        {"acz", required_argument, 0, '3'},     {"nwarmup", required_argument, 0, 'w'},
+        {"ntrials", required_argument, 0, 't'}, {"skip-threshold", required_argument, 0, 'k'},
+        {"out-of-place", no_argument, 0, 'o'},  {"use-managed-memory", no_argument, 0, 'm'},
+        {"tuning", no_argument, 0, 'u'},        {"skip-correctness-tests", no_argument, 0, 's'},
+        {"help", no_argument, 0, 'h'},          {"oversub", required_argument, 0, 'v'},
+        {"skip", no_argument, 0, '4'},          {0, 0, 0, 0}};
 
     int option_index = 0;
     int ch = getopt_long(argc, argv, "x:y:z:b:r:c:1:2:3:w:t:k:b:omushv:", long_options, &option_index);
@@ -201,6 +194,7 @@ int main(int argc, char** argv) {
     case '1': axis_contiguous[0] = atoi(optarg); break;
     case '2': axis_contiguous[1] = atoi(optarg); break;
     case '3': axis_contiguous[2] = atoi(optarg); break;
+    case '4': skip = true; break;
     case 'w': nwarmup = atoi(optarg); break;
     case 't': ntrials = atoi(optarg); break;
     case 'k': skip_threshold = atof(optarg); break;
@@ -261,7 +255,15 @@ int main(int argc, char** argv) {
   config.gdims[0] = gdim_c[0];
   config.gdims[1] = gdim_c[1];
   config.gdims[2] = gdim_c[2];
-  CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, &options));
+
+  if (skip) {
+    config.pdims[0] = nranks;
+    config.pdims[1] = 1;
+
+    CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, nullptr));
+  } else {
+    CHECK_CUDECOMP_EXIT(cudecompGridDescCreate(handle, &grid_desc_c, &config, &options));
+  }
 
   cudecompGridDesc_t grid_desc_r;                          // real grid
   std::array<int32_t, 3> gdim_r{(gx / 2 + 1) * 2, gy, gz}; // with padding
