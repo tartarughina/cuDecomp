@@ -12,6 +12,20 @@ This library is currently in a research-oriented state, and has been released as
 
 Please contact us or open a GitHub issue if you are interested in using this library in your own solvers and have questions on usage and/or feature requests.
 
+## Extensions
+
+The library has been extended to support the following features:
+
+- Wider use of Unified Memory, tuning and oversubscription
+- Skip autotuning for consistent results
+
+## Issues
+
+On Polaris the autotuning feature on Taylor-Green doesn't work when running on multiple nodes.
+It hangs indefinitely while testing one of the configurations.
+This, and the fact that autotuning was picking inconsistent configurations between adjacent runs, led to the decision of skipping autotuning.
+Skipping autotuning allowed to run the benchmarks on Polaris with the same config therefore returning consistent results comparable with each other.
+
 ## Build
 
 ### Method 1: Makefile with Configuration file (deprecated)
