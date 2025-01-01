@@ -128,6 +128,8 @@ static void usage(const char* pname) {
           "\t\tFlag to enable managed memory tuning.\n"
           "\t-s|--skip-correctness-tests\n"
           "\t\tFlag to skip checking results for correctness.\n\n"
+          "\t-s|--skip\n"
+          "\t\tFlag to skip autotuning of the grid.\n\n"
           "\t-v|--oversub\n"
           "\t\tUnified Memory oversubscription factor to enable. (default: 0 options: 1->1.5x, 2->2x)"
           "\t-h|--help\n"
