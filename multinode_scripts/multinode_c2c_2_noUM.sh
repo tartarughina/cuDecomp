@@ -14,10 +14,12 @@ export NCCL_NET_GDR_LEVEL=PHB
 export NCCL_CROSS_NIC=1
 export NCCL_COLLNET_ENABLE=1
 export NCCL_NET="AWS Libfabric"
-export LD_LIBRARY_PATH=/home/tartarughina/cuDecomp/lib:/soft/libraries/hwloc/lib:/soft/libraries/aws-ofi-nccl/v1.9.1-aws/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HOME/cuDecomp/lib:/soft/libraries/hwloc/lib:/soft/libraries/aws-ofi-nccl/v1.9.1-aws/lib:$LD_LIBRARY_PATH
 export FI_CXI_DISABLE_HOST_REGISTER=1
 export FI_MR_CACHE_MONITOR=userfaultfd
 export FI_CXI_DEFAULT_CQ_SIZE=131072
+
+module load craype-accel-nvidia80
 
 # Number of GPUs per rank --> 1:1
 ngpus=1
@@ -39,5 +41,7 @@ cd $HOME/cuDecomp/bin/benchmark
 
 # Execute 5 times
 for i in {1..10}; do
-    mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 ./benchmark_c2c -b 4 -x ${size} -y ${size} -z ${size} > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
+    --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
+    ./benchmark_c2c -b 4 --skip -x ${size} -y ${size} -z ${size} > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done
