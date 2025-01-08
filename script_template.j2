@@ -3,7 +3,7 @@
 #PBS -A {{ project_name }}
 #PBS -l walltime=1:00:00
 #PBS -l filesystems=home:eagle:grand
-#PBS -N {{ name }}_{{ type }}_{{ nodes }}_{{ size }}
+#PBS -N {{ name }}_{{ type }}_{{ nodes }}
 #PBS -m bea
 #PBS -M {{ email }}
 #PBS -V
@@ -51,8 +51,8 @@ cd {{ bin_path }}
 for size in{% for size in sizes %} {{ size }}{% endfor %}; do
 {% endif %}
 for i in {1..{{ exec_times }}}; do
-    mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \\
-    --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \\
+    mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
+    --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
     {{ exec }} {{ def_arg }}{% if def_arg %} {% endif %}{{ opt_arg }}{% if opt_arg %} {% endif %}> "${log_path}/{{ type }}_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done
 {% if sizes|length > 1 %}
