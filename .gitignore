@@ -12,4 +12,3 @@ examples/fortran/poisson/poisson
 tests/cc/*_test_*
 tests/fortran/*_test_*
 bin/
-scripts/
