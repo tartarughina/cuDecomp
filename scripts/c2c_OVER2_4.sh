@@ -49,5 +49,5 @@ cd $HOME/cuDecomp/bin/benchmark
 for i in {1..10}; do
     mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
     --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
-    ./benchmark_c2c -b 4 --skip -x ${size} -y ${size} -z ${size} --use-managed-memory --oversub 2 > "${log_path}/OVER2_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    ./benchmark_c2c -b 4 --skip -x ${size} -y ${size} -z ${size} --use-managed-memory --oversub 2 > "${log_path}/${PBS_JOBID}_OVER2_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done

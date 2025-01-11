@@ -53,7 +53,7 @@ for size in{% for size in sizes %} {{ size }}{% endfor %}; do
 for i in {1..{{ exec_times }}}; do
     mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
     --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
-    {{ exec }} {{ def_arg }}{% if def_arg %} {% endif %}{{ opt_arg }}{% if opt_arg %} {% endif %}> "${log_path}/{{ type }}_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    {{ exec }} {{ def_arg }}{% if def_arg %} {% endif %}{{ opt_arg }}{% if opt_arg %} {% endif %}> "${log_path}/${PBS_JOBID}_{{ type }}_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done
 {% if sizes|length > 1 %}
 done

@@ -49,5 +49,5 @@ cd $HOME/cuDecomp/bin/examples/cc/taylor_green
 for i in {1..10}; do
     mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
     --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
-    ./tg --skip -n ${size} > "${log_path}/noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    ./tg --skip -n ${size} > "${log_path}/${PBS_JOBID}_noUM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done

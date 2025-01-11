@@ -42,7 +42,7 @@ for size in 128 256 512; do
 for i in {1..10}; do
     mpirun --envall --np "${NTOTRANKS}" --ppn "${nranks}" \
     --hostfile "$PBS_NODEFILE" --cpu-bind list:0,8,16,24 \
-    ./tg --skip -n ${size} --unified_mem > "${log_path}/UM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
+    ./tg --skip -n ${size} --unified_mem > "${log_path}/${PBS_JOBID}_UM_gpus_${NTOTRANKS}_size_${size}_iter_${i}.txt"
 done
 
 done
